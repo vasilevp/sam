@@ -35,7 +35,7 @@ var Mouth byte = 128
 var Throat byte = 128
 var Singmode = false
 
-func PrintPhonemes(phonemeindex []byte, phonemeLength []byte, stress []byte) {
+func PrintPhonemes(phonemeindex [256]byte, phonemeLength [256]byte, stress [256]byte) {
 	i := 0
 	fmt.Printf("===========================================\n")
 
