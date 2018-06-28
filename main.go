@@ -157,7 +157,7 @@ func main() {
 			fmt.Printf("phonetic input: %s\n", data)
 		}
 	} else {
-		input += "\x9b"
+		data[i] = '\x9b'
 	}
 
 	sammain.SetInput(data)
