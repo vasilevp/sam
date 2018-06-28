@@ -615,7 +615,7 @@ func Parser2() {
 					if p == 0 {
 						p = phonemeindex[pos+2]
 					}
-					if (flags[p]&FLAG_VOWEL != 0) && stress[pos+1] == 0 {
+					if p != global.END && (flags[p]&FLAG_VOWEL != 0) && stress[pos+1] == 0 {
 						change(pos, 30, "Soften T or D following vowel or ER and preceding a pause -> DX")
 					}
 				}
