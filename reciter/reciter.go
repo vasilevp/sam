@@ -1,7 +1,7 @@
 package reciter
 
 import (
-	"test/sam/global"
+	"github.com/exploser/sam/global"
 )
 
 var A, X, Y byte

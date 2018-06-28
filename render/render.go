@@ -1,7 +1,7 @@
 package render
 
 import (
-	"test/sam/global"
+	"github.com/exploser/sam/global"
 )
 
 var wait1 byte = 7

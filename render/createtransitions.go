@@ -2,7 +2,8 @@ package render
 
 import (
 	"fmt"
-	"test/sam/global"
+
+	"github.com/exploser/sam/global"
 )
 
 // CREATE TRANSITIONS

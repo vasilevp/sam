@@ -2,8 +2,9 @@ package sammain
 
 import (
 	"fmt"
-	"test/sam/global"
-	"test/sam/render"
+
+	"github.com/exploser/sam/global"
+	"github.com/exploser/sam/render"
 )
 
 var mem39 byte

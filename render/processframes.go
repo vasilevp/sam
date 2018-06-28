@@ -1,7 +1,7 @@
 package render
 
 import (
-	"test/sam/global"
+	"github.com/exploser/sam/global"
 )
 
 func CombineGlottalAndFormants(phase1, phase2, phase3, Y byte) {

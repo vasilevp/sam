@@ -1,8 +1,5 @@
 package sammain
 
-//tab40672
-var ()
-
 //loc_9F8C
 const (
 	FLAG_PLOSIVE  = 0x0001

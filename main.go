@@ -7,10 +7,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"test/sam/global"
-	"test/sam/reciter"
-	"test/sam/sammain"
 	"time"
+
+	"github.com/exploser/sam/global"
+	"github.com/exploser/sam/reciter"
+	"github.com/exploser/sam/sammain"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
