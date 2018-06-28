@@ -171,14 +171,14 @@ func main() {
 			fmt.Println("Error: ", err)
 			os.Exit(3)
 		}
-		_, err = wav.NewWriter(file, uint32(sammain.GetBufferLength()+22050), 1, 22050, 8).Write(sammain.GetBuffer())
+		_, err = wav.NewWriter(file, uint32(sammain.GetBufferLength()), 1, 22050, 8).Write(sammain.GetBuffer())
 		if err != nil {
 			fmt.Println("Error: ", err)
 			os.Exit(4)
 		}
 	} else {
 		buf := &bytes.Buffer{}
-		_, err := wav.NewWriter(buf, uint32(sammain.GetBufferLength()+22050), 1, 22050, 8).Write(sammain.GetBuffer())
+		_, err := wav.NewWriter(buf, uint32(sammain.GetBufferLength()), 1, 22050, 8).Write(sammain.GetBuffer())
 		if err != nil {
 			fmt.Println("Error: ", err)
 			os.Exit(5)
@@ -190,7 +190,7 @@ func main() {
 			os.Exit(6)
 		}
 
-		speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+		speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/20))
 		done := make(chan int)
 		speaker.Play(beep.Seq(s, beep.Callback(func() {
 			done <- 0

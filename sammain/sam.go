@@ -692,6 +692,9 @@ func AdjustLengths() {
 
 		if flags[index]&FLAG_VOWEL != 0 {
 			index = phonemeindex[loopIndex+1]
+			if index == global.END {
+				break
+			}
 			if !(flags[index]&FLAG_CONSONANT != 0) {
 				if (index == 18) || (index == 19) { // 'RX', 'LX'
 					index = phonemeindex[loopIndex+2]
