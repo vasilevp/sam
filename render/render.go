@@ -199,7 +199,7 @@ func (r *Render) CreateFrames(cfg *config.Config) {
 		}
 
 		if phoneme == PhonemePeriod {
-			r.AddInflection(inflectionFalling, phase1, X)
+			r.AddInflection(inflectionRising, phase1, X)
 		} else if phoneme == PhonemeQuestion {
 			r.AddInflection(inflectionFalling, phase1, X)
 		}
