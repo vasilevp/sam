@@ -1,10 +1,10 @@
 package config
 
 type Config struct {
-	Speed    byte `arg:"-s" help:"set speed value (default=72)"`
-	Pitch    byte `arg:"-p" help:"set pitch value (default=64)"`
-	Mouth    byte `arg:"-m" help:"set mouth value (default=128)"`
-	Throat   byte `arg:"-t" help:"set throat value (default=128)"`
+	Speed    byte `arg:"-s" help:"set speed value"`
+	Pitch    byte `arg:"-p" help:"set pitch value"`
+	Mouth    byte `arg:"-m" help:"set mouth value"`
+	Throat   byte `arg:"-t" help:"set throat value"`
 	Singmode bool `arg:"-S" help:"enable singing mode (special treatment of pitch)"`
 	Debug    bool `arg:"-D" help:"print additional debug messages"`
 }
