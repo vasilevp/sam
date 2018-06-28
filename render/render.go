@@ -275,7 +275,7 @@ func (r *Render) Render(cfg *config.Config) {
 	r.CreateFrames(cfg)
 	t := r.CreateTransitions()
 
-	if !cfg.Singmode {
+	if !cfg.Sing {
 		r.AssignPitchContour()
 	}
 	r.RescaleAmplitude()

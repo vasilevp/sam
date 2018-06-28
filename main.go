@@ -26,12 +26,11 @@ func main() {
 		config.Config
 		Wav          string   `arg:"-w" help:"output to wav instead of libsdl"`
 		Input        []string `arg:"positional"`
-		Phonetic     bool     `help:"enters phonetic mode (use -P to show phonetic guide)"`
-		PhoneticHelp bool     `arg:"-P" help:"show phonetic guide"`
+		Phonetic     bool     `arg:"-P" help:"enters phonetic mode (use -P to show phonetic guide)"`
+		PhoneticHelp bool     `arg:"-g" help:"show phonetic guide"`
 	}
 
 	args.Config = *config.DefaultConfig()
-
 	arg.MustParse(&args)
 
 	if args.PhoneticHelp {

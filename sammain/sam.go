@@ -702,7 +702,7 @@ func (s *Sam) AdjustLengths() {
 			if !(flags[index]&FLAG_CONSONANT != 0) {
 				if (index == 18) || (index == 19) { // 'RX', 'LX'
 					index = s.phonemeindex[loopIndex+2]
-					if flags[index]&FLAG_CONSONANT != 0 {
+					if index != render.PhonemeEnd && flags[index]&FLAG_CONSONANT != 0 {
 						s.drule_pre("<VOWEL> <RX | LX> <CONSONANT> - decrease length of vowel by 1\n", loopIndex)
 						s.phonemeLength[loopIndex]--
 						s.drule_post(loopIndex)
