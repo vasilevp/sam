@@ -12,14 +12,14 @@ const (
 var (
 	tab48426 = [5]byte{0x18, 0x1A, 0x17, 0x17, 0x17}
 
-	tab47492 = []byte{
+	tab47492 = [11]byte{
 		0, 0, 0xE0, 0xE6, 0xEC, 0xF3, 0xF9, 0,
 		6, 0xC, 6,
 	}
 
-	amplitudeRescale = []byte{
+	amplitudeRescale = [16]byte{
 		0, 1, 2, 2, 2, 3, 3, 4,
-		4, 5, 6, 8, 9, 0xB, 0xD, 0xF, 0, //17 elements?
+		4, 5, 6, 8, 9, 0xB, 0xD, 0xF,
 	}
 
 	// Used to decide which phoneme's blend lengths. The candidate with the lower score is selected.

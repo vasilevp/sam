@@ -5,7 +5,7 @@ import "fmt"
 var A, X, Y byte
 
 /* Retrieve flags for character at mem59-1 */
-func (r *Reciter) code37055(npos, mask byte) byte {
+func (r *Reciter) getFlag(npos, mask byte) byte {
 	X = npos
 	return flags36376[r.inputtemp[X]] & mask
 }

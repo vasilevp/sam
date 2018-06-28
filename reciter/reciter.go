@@ -161,7 +161,7 @@ pos36700:
 		if r == -1 {
 			switch ch {
 			case '&':
-				if rec.code37055(mem59-1, 16) == 0 {
+				if rec.getFlag(mem59-1, 16) == 0 {
 					if rec.inputtemp[X] != 'H' {
 						r = 1
 					} else {
@@ -175,7 +175,7 @@ pos36700:
 				break
 
 			case '@':
-				if rec.code37055(mem59-1, 4) == 0 {
+				if rec.getFlag(mem59-1, 4) == 0 {
 					A = rec.inputtemp[X]
 					if A != 72 {
 						r = 1
@@ -194,7 +194,7 @@ pos36700:
 				}
 				break
 			case ':':
-				for rec.code37055(mem59-1, 32) != 0 {
+				for rec.getFlag(mem59-1, 32) != 0 {
 					mem59--
 				}
 				continue
@@ -276,7 +276,7 @@ pos37184:
 		if r == 0 {
 			A = mem57
 			if A == '@' {
-				if rec.code37055(mem58+1, 4) == 0 {
+				if rec.getFlag(mem58+1, 4) == 0 {
 					A = rec.inputtemp[X]
 					if (A != 82) && (A != 84) &&
 						(A != 67) && (A != 83) {
@@ -286,7 +286,7 @@ pos37184:
 					r = -2
 				}
 			} else if A == ':' {
-				for rec.code37055(mem58+1, 32) != 0 {
+				for rec.getFlag(mem58+1, 32) != 0 {
 					mem58 = X
 				}
 				r = -2
