@@ -221,10 +221,9 @@ func CreateFrames() {
 //
 func RescaleAmplitude() {
 	for i := 255; i >= 0; i-- {
-		// fmt.Println(amplitude1[i])
-		// amplitude1[i] = amplitudeRescale[amplitude1[i]]
-		// amplitude2[i] = amplitudeRescale[amplitude2[i]]
-		// amplitude3[i] = amplitudeRescale[amplitude3[i]]
+		amplitude1[i] = amplitudeRescale[amplitude1[i]]
+		amplitude2[i] = amplitudeRescale[amplitude2[i]]
+		amplitude3[i] = amplitudeRescale[amplitude3[i]]
 	}
 }
 

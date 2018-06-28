@@ -86,6 +86,7 @@ func Write(p, Y, value byte) {
 		return
 	case 172:
 		amplitude1[Y] = value
+		fmt.Println("wrote", value)
 		return
 	case 173:
 		amplitude2[Y] = value
@@ -97,29 +98,28 @@ func Write(p, Y, value byte) {
 	fmt.Printf("Error writing to tables\n")
 }
 
-func abs(x int) int {
+func abs(x int8) int8 {
 	if x < 0 {
 		return -x
 	}
-
 	return x
 }
 
 // linearly interpolate values
 func interpolate(width, table, frame, mem53 byte) {
-	sign := ((mem53) < 0)
-	remainder := mem53 % width
-	div := ((mem53) / width)
+	sign := (int8(mem53) < 0)
+	remainder := byte(int(abs(int8(mem53))) % int(width))
+	div := byte(int(int8(mem53)) / int(width))
 
-	var error byte = 0
+	var intError byte = 0
 	var pos = width
 	var val = Read(table, frame) + div
 
 	pos--
 	for pos > 0 {
-		error += remainder
-		if error >= width { // accumulated a whole integer error, so adjust output
-			error -= width
+		intError += remainder
+		if intError >= width { // accumulated a whole integer error, so adjust output
+			intError -= width
 			if sign {
 				val--
 			} else if val != 0 {

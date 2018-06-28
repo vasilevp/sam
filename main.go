@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"test/sam/global"
 	"test/sam/reciter"
 	"test/sam/sammain"
 
@@ -55,8 +56,6 @@ func PrintUsage() {
 	fmt.Printf("Q            kitt-en (glottal stop)    /H        a(h)ead	\n")
 }
 
-var debug = false
-
 func main() {
 	var i int
 	var phonetic = false
@@ -84,7 +83,7 @@ func main() {
 			case "phonetic":
 				phonetic = true
 			case "debug":
-				debug = true
+				global.Debug = true
 			case "pitch":
 				val, err := strconv.Atoi(os.Args[i+1])
 				if err != nil {
@@ -134,7 +133,7 @@ func main() {
 		data[i] = byte(c)
 	}
 
-	if debug {
+	if global.Debug {
 		if phonetic {
 			fmt.Printf("phonetic input: %s\n", string(data[:]))
 		} else {
@@ -145,11 +144,10 @@ func main() {
 	if !phonetic {
 		data[i] = '['
 
-		fmt.Println("DBG ", string(data[:]))
 		if reciter.TextToPhonemes(data[:]) == 0 {
 			os.Exit(1)
 		}
-		if debug {
+		if global.Debug {
 			fmt.Printf("phonetic input: %s\n", data)
 		}
 	} else {
