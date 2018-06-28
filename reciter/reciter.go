@@ -180,7 +180,8 @@ pos36700:
 	for (global.GetRuleByte(mem62, 0) & 128) == 0 {
 		mem62++
 	}
-	var Y byte = 1
+	var Y byte
+	Y++
 	for global.GetRuleByte(mem62, Y) != '(' {
 		Y++
 	}

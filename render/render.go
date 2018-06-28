@@ -36,12 +36,12 @@ var timetable = [5][5]int{
 	{199, 0, 0, 54, 54},
 }
 
-var oldtimetableindex uint = 0
+var oldtimetableindex int = 0
 
 func Output(index int, A byte) {
 	var k int
 	global.Bufferpos += timetable[oldtimetableindex][index]
-	oldtimetableindex = uint(index)
+	oldtimetableindex = index
 	// write a little bit in advance
 	for k = 0; k < 5; k++ {
 		global.Buffer[global.Bufferpos/50+k] = (A & 15) * 16

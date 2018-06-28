@@ -24,7 +24,7 @@ var phonemeindex [256]byte
 // contains the final soundbuffer
 
 func SetInput(_input [256]byte) {
-	global.Input = _input
+	copy(global.Input[:], _input[:])
 }
 
 func SetSpeed(_speed byte)   { global.Speed = _speed }
@@ -33,7 +33,7 @@ func SetMouth(_mouth byte)   { global.Mouth = _mouth }
 func SetThroat(_throat byte) { global.Throat = _throat }
 func EnableSingmode()        { global.Singmode = true }
 func GetBuffer() []byte      { return global.Buffer }
-func GetBufferLength() int   { return global.Bufferpos }
+func GetBufferLength() int   { return global.Bufferpos/50 + 5 }
 
 func Init() {
 	var i int
@@ -301,7 +301,8 @@ func Parser1() bool {
 	} // Clear the stress table.
 
 	sign1 = global.Input[srcpos]
-	for sign1 != 155 { // 155 (\233) is end of line marker
+	for global.Input[srcpos] != 155 { // 155 (\233) is end of line marker
+		sign1 = global.Input[srcpos]
 		srcpos++
 		sign2 = global.Input[srcpos]
 		match := full_match(sign1, sign2)
@@ -310,7 +311,6 @@ func Parser1() bool {
 			phonemeindex[position] = byte(match)
 			position++
 			srcpos++ // Skip the second character of the input as we've matched it
-			sign1 = global.Input[srcpos]
 			continue
 		}
 		match = wild_match(sign1, sign2)
@@ -332,7 +332,6 @@ func Parser1() bool {
 
 			stress[position-1] = byte(match) // Set stress for prior phoneme
 		}
-		sign1 = global.Input[srcpos]
 	} //while
 
 	phonemeindex[position] = global.END

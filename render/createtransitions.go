@@ -86,7 +86,6 @@ func Write(p, Y, value byte) {
 		return
 	case 172:
 		amplitude1[Y] = value
-		fmt.Println("wrote", value)
 		return
 	case 173:
 		amplitude2[Y] = value

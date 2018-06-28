@@ -1,15 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"test/sam/global"
 	"test/sam/reciter"
 	"test/sam/sammain"
+	"time"
 
-	"github.com/youpy/go-wav"
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/speaker"
+	wavplayer "github.com/faiface/beep/wav"
+	wav "github.com/youpy/go-wav"
 )
 
 func PrintUsage() {
@@ -67,7 +73,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	wavfilename := "out.wav"
+	wavfilename := ""
 
 	i = 1
 	for i < len(os.Args) {
@@ -128,9 +134,8 @@ func main() {
 	input = strings.ToUpper(input)
 
 	var data [256]byte
-	var c rune
-	for i, c = range input {
-		data[i] = byte(c)
+	for i = 0; i < len(input); i++ {
+		data[i] = byte(input[i])
 	}
 
 	if global.Debug {
@@ -166,14 +171,30 @@ func main() {
 			fmt.Println("Error: ", err)
 			os.Exit(3)
 		}
-		_, err = wav.NewWriter(file, uint32(sammain.GetBufferLength()), 1, 22050, 8).Write(sammain.GetBuffer())
+		_, err = wav.NewWriter(file, uint32(sammain.GetBufferLength()+22050), 1, 22050, 8).Write(sammain.GetBuffer())
 		if err != nil {
 			fmt.Println("Error: ", err)
 			os.Exit(4)
 		}
-		// WriteWav(wavfilename, GetBuffer(), GetBufferLength()/50)
 	} else {
-		// OutputSound()
-	}
+		buf := &bytes.Buffer{}
+		_, err := wav.NewWriter(buf, uint32(sammain.GetBufferLength()+22050), 1, 22050, 8).Write(sammain.GetBuffer())
+		if err != nil {
+			fmt.Println("Error: ", err)
+			os.Exit(5)
+		}
+		reader := ioutil.NopCloser(bytes.NewReader(buf.Bytes()))
+		s, format, err := wavplayer.Decode(reader)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			os.Exit(6)
+		}
 
+		speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+		done := make(chan int)
+		speaker.Play(beep.Seq(s, beep.Callback(func() {
+			done <- 0
+		})))
+		<-done
+	}
 }
