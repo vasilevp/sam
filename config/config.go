@@ -1,12 +1,12 @@
 package config
 
 type Config struct {
-	Speed    byte
-	Pitch    byte
-	Mouth    byte
-	Throat   byte
-	Singmode bool
-	Debug    bool
+	Speed    byte `arg:"-s" help:"set speed value (default=72)"`
+	Pitch    byte `arg:"-p" help:"set pitch value (default=64)"`
+	Mouth    byte `arg:"-m" help:"set mouth value (default=128)"`
+	Throat   byte `arg:"-t" help:"set throat value (default=128)"`
+	Singmode bool `arg:"-S" help:"enable singing mode (special treatment of pitch)"`
+	Debug    bool `arg:"-D" help:"print additional debug messages"`
 }
 
 func DefaultConfig() *Config {

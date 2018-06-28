@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	arg "github.com/alexflint/go-arg"
 	"github.com/exploser/sam/config"
 	"github.com/exploser/sam/reciter"
 	"github.com/exploser/sam/render"
@@ -20,19 +21,7 @@ import (
 	wav "github.com/youpy/go-wav"
 )
 
-func PrintUsage() {
-	fmt.Printf("usage: sam [options] Word1 Word2 ....\n")
-	fmt.Printf("options\n")
-	fmt.Printf("	-phonetic 		enters phonetic mode. (see below)\n")
-	fmt.Printf("	-pitch number		set pitch value (default=64)\n")
-	fmt.Printf("	-speed number		set speed value (default=72)\n")
-	fmt.Printf("	-throat number		set throat value (default=128)\n")
-	fmt.Printf("	-mouth number		set mouth value (default=128)\n")
-	fmt.Printf("	-wav filename		output to wav instead of libsdl\n")
-	fmt.Printf("	-sing			special treatment of pitch\n")
-	fmt.Printf("	-debug			print additional debug messages\n")
-	fmt.Printf("\n")
-
+func printPhoneticGuide() {
 	fmt.Printf("     VOWELS                            VOICED CONSONANTS	\n")
 	fmt.Printf("IY           f(ee)t                    R        red		\n")
 	fmt.Printf("IH           p(i)n                     L        allow		\n")
@@ -64,8 +53,22 @@ func PrintUsage() {
 	fmt.Printf("Q            kitt-en (glottal stop)    /H        a(h)ead	\n")
 }
 
-func main() {
-	var i int
+func PrintUsage() {
+	fmt.Printf("usage: sam [options] Word1 Word2 ....\n")
+	fmt.Printf("options\n")
+	fmt.Printf("	-phonetic 		enters phonetic mode. (see below)\n")
+	fmt.Printf("	-pitch number		set pitch value (default=64)\n")
+	fmt.Printf("	-speed number		set speed value (default=72)\n")
+	fmt.Printf("	-throat number		set throat value (default=128)\n")
+	fmt.Printf("	-mouth number		set mouth value (default=128)\n")
+	fmt.Printf("	-wav filename		output to wav instead of libsdl\n")
+	fmt.Printf("	-sing			special treatment of pitch\n")
+	fmt.Printf("	-debug			print additional debug messages\n")
+	fmt.Printf("\n")
+	printPhoneticGuide()
+}
+
+func legacyMain() {
 	var phonetic = false
 
 	var input string
@@ -79,7 +82,7 @@ func main() {
 
 	cfg := config.DefaultConfig()
 
-	i = 1
+	i := 1
 	for i < len(os.Args) {
 		if os.Args[i][0] != '-' {
 			input += os.Args[i] + " "
@@ -133,11 +136,46 @@ func main() {
 		}
 
 		i++
-	} //while
+	}
 
 	input = strings.ToUpper(input)
 
+	r := generateSpeech(input, cfg, phonetic)
+
+	outputSpeech(r, wavfilename)
+}
+
+func main() {
+	var args struct {
+		config.Config
+		Wav          string   `arg:"-w" help:"output to wav instead of libsdl"`
+		Input        []string `arg:"positional,required"`
+		Legacy       bool     `help:"run in legacy mode"`
+		Phonetic     bool     `enters phonetic mode (use -P to show phonetic guide)`
+		PhoneticHelp bool     `arg:"-P" help:"show phonetic guide"`
+	}
+
+	args.Config = *config.DefaultConfig()
+
+	arg.MustParse(&args)
+
+	if args.Legacy {
+		legacyMain()
+		return
+	}
+
+	if args.PhoneticHelp {
+		printPhoneticGuide()
+		return
+	}
+
+	r := generateSpeech(strings.Join(args.Input, " "), &args.Config, args.Phonetic)
+	outputSpeech(r, args.Wav)
+}
+
+func generateSpeech(input string, cfg *config.Config, phonetic bool) *render.Render {
 	var data [256]byte
+	var i int
 	for i = 0; i < len(input); i++ {
 		data[i] = byte(input[i])
 	}
@@ -180,8 +218,12 @@ func main() {
 
 	sam.PrepareOutput(&r)
 
-	if wavfilename != "" {
-		file, err := os.Create(wavfilename)
+	return &r
+}
+
+func outputSpeech(r *render.Render, destination string) {
+	if destination != "" {
+		file, err := os.Create(destination)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			os.Exit(3)
