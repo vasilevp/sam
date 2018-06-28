@@ -1,6 +1,10 @@
 package global
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/exploser/sam/global"
+)
 
 const (
 	PHONEME_PERIOD     = 1
@@ -45,8 +49,6 @@ var (
 	}
 )
 
-var Bufferpos int
-var Buffer []byte
 var PhonemeIndexOutput [60]byte //tab47296
 var PhonemeLengthOutput [60]byte
 var StressOutput [60]byte
@@ -59,15 +61,6 @@ const (
 	END   = 255
 )
 
-var Input [256]byte //tab39445
-//standard sam sound
-var Speed byte = 72
-var Pitch byte = 64
-var Mouth byte = 128
-var Throat byte = 128
-var Singmode = false
-var Debug = false
-
 func PrintPhonemes(phonemeindex []byte, phonemeLength []byte, stress []byte) {
 	i := 0
 	fmt.Printf("===========================================\n")
@@ -76,7 +69,7 @@ func PrintPhonemes(phonemeindex []byte, phonemeLength []byte, stress []byte) {
 	fmt.Printf(" idx    phoneme  length  stress\n")
 	fmt.Printf("------------------------------\n")
 
-	for (phonemeindex[i] != 255) && (i < 255) {
+	for (phonemeindex[i] != global.END) && (i < 255) {
 		if phonemeindex[i] < 81 {
 			fmt.Printf(" %3v      %c%c      %3v       %v\n",
 				phonemeindex[i],
@@ -110,7 +103,7 @@ func PrintOutput(flag, f1, f2, f3, a1, a2, a3, p []byte) {
 
 func PrintRule(offset int) {
 	i := 1
-	var A byte = 0
+	var A byte
 	fmt.Printf("Applying rule: ")
 	for (A & 128) == 0 {
 		A = GetRuleByte(uint16(offset), byte(i))

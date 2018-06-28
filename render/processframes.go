@@ -1,23 +1,23 @@
 package render
 
 import (
-	"github.com/exploser/sam/global"
+	"github.com/exploser/sam/config"
 )
 
-func CombineGlottalAndFormants(phase1, phase2, phase3, Y byte) {
+func (r *Render) CombineGlottalAndFormants(phase1, phase2, phase3, Y byte) {
 	var tmp uint
 
-	tmp = uint(multtable[sinus[phase1]|amplitude1[Y]])
-	tmp += uint(multtable[sinus[phase2]|amplitude2[Y]])
+	tmp = uint(multtable[sinus[phase1]|r.amplitude1[Y]])
+	tmp += uint(multtable[sinus[phase2]|r.amplitude2[Y]])
 	// tmp  += tmp > 255 ? 1 : 0; // if addition above overflows, we for some reason add one;
 	if tmp > 255 {
 		tmp++
 	}
-	tmp += uint(multtable[rectangle[phase3]|amplitude3[Y]])
+	tmp += uint(multtable[rectangle[phase3]|r.amplitude3[Y]])
 	tmp += 136
 	tmp >>= 4 // Scale down to 0..15 range of C64 audio.
 
-	Output(0, byte(tmp&0xf))
+	r.Output(0, byte(tmp&0xf))
 }
 
 // PROCESS THE FRAMES
@@ -29,41 +29,41 @@ func CombineGlottalAndFormants(phase1, phase2, phase3, Y byte) {
 // To simulate them being driven by the glottal pulse, the waveforms are
 // reset at the beginning of each glottal pulse.
 //
-func ProcessFrames(mem48 byte) {
+func (r *Render) ProcessFrames(count byte, cfg *config.Config) {
 
 	var speedcounter byte = 72
-	var phase1 byte = 0
-	var phase2 byte = 0
-	var phase3 byte = 0
+	var phase1 byte
+	var phase2 byte
+	var phase3 byte
 	var mem66 byte
 
-	var Y byte = 0
+	var Y byte
 
-	var glottal_pulse = pitches[0]
+	var glottal_pulse = r.pitches[0]
 	var mem38 = glottal_pulse - (glottal_pulse >> 2) // mem44 * 0.75
 
-	for mem48 != 0 {
-		var flags = sampledConsonantFlag[Y]
+	for count != 0 {
+		var flags = r.sampledConsonantFlag[Y]
 
 		// unvoiced sampled phoneme?
 		if flags&248 != 0 {
-			RenderSample(&mem66, flags, Y)
+			r.RenderSample(&mem66, flags, Y)
 			// skip ahead two in the phoneme buffer
 			Y += 2
-			mem48 -= 2
-			speedcounter = global.Speed
+			count -= 2
+			speedcounter = cfg.Speed
 		} else {
-			CombineGlottalAndFormants(phase1, phase2, phase3, Y)
+			r.CombineGlottalAndFormants(phase1, phase2, phase3, Y)
 
 			speedcounter--
 			if speedcounter == 0 {
 				Y++ //go to next amplitude
 				// decrement the frame count
-				mem48--
-				if mem48 == 0 {
+				count--
+				if count == 0 {
 					return
 				}
-				speedcounter = global.Speed
+				speedcounter = cfg.Speed
 			}
 
 			glottal_pulse--
@@ -76,20 +76,20 @@ func ProcessFrames(mem48 byte) {
 				// is the count non-zero and the sampled flag is zero?
 				if (mem38 != 0) || (flags == 0) {
 					// reset the phase of the formants to match the pulse
-					phase1 += frequency1[Y]
-					phase2 += frequency2[Y]
-					phase3 += frequency3[Y]
+					phase1 += r.frequency1[Y]
+					phase2 += r.frequency2[Y]
+					phase3 += r.frequency3[Y]
 					continue
 				}
 
 				// voiced sampled phonemes interleave the sample with the
 				// glottal pulse. The sample flag is non-zero, so render
 				// the sample for the phoneme.
-				RenderSample(&mem66, flags, Y)
+				r.RenderSample(&mem66, flags, Y)
 			}
 		}
 
-		glottal_pulse = pitches[Y]
+		glottal_pulse = r.pitches[Y]
 		mem38 = glottal_pulse - (glottal_pulse >> 2) // mem44 * 0.75
 
 		// reset the formant wave generators to keep them in

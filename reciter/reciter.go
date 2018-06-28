@@ -1,6 +1,7 @@
 package reciter
 
 import (
+	"github.com/exploser/sam/config"
 	"github.com/exploser/sam/global"
 )
 
@@ -89,7 +90,7 @@ func handle_ch(A, mem byte) int {
 	return 0
 }
 
-func TextToPhonemes(input []byte) int {
+func TextToPhonemes(input []byte, cfg *config.Config) int {
 	var mem56, //output position for phonemes
 		mem58,
 		mem60,
@@ -324,7 +325,7 @@ pos37184:
 			if Y == mem64 {
 				mem61 = mem60
 
-				if global.Debug {
+				if cfg.Debug {
 					global.PrintRule(int(mem62))
 				}
 

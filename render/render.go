@@ -1,26 +1,36 @@
 package render
 
 import (
+	"github.com/exploser/sam/config"
 	"github.com/exploser/sam/global"
 )
 
-var wait1 byte = 7
-var wait2 byte = 6
+type Render struct {
+	Bufferpos int
+	Buffer    []byte
+
+	pitches [256]byte // tab43008
+
+	frequency1 [256]byte
+	frequency2 [256]byte
+	frequency3 [256]byte
+
+	amplitude1           [256]byte
+	amplitude2           [256]byte
+	amplitude3           [256]byte
+	sampledConsonantFlag [256]byte // tab44800
+	oldtimetableindex    int
+}
+
+func (r *Render) GetBuffer() []byte {
+	return r.Buffer
+}
+func (r *Render) GetBufferLength() int {
+	return r.Bufferpos/50 + 5
+}
 
 //extern byte A, X, Y;
 //extern byte mem44;
-
-var pitches [256]byte // tab43008
-
-var frequency1 [256]byte
-var frequency2 [256]byte
-var frequency3 [256]byte
-
-var amplitude1 [256]byte
-var amplitude2 [256]byte
-var amplitude3 [256]byte
-
-var sampledConsonantFlag [256]byte // tab44800
 
 //return = hibyte(mem39212*mem39213) <<  1
 func trans(a, b byte) byte {
@@ -36,27 +46,25 @@ var timetable = [5][5]int{
 	{199, 0, 0, 54, 54},
 }
 
-var oldtimetableindex int = 0
-
-func Output(index int, A byte) {
+func (r *Render) Output(index int, A byte) {
 	var k int
-	global.Bufferpos += timetable[oldtimetableindex][index]
-	oldtimetableindex = index
+	r.Bufferpos += timetable[r.oldtimetableindex][index]
+	r.oldtimetableindex = index
 	// write a little bit in advance
 	for k = 0; k < 5; k++ {
-		global.Buffer[global.Bufferpos/50+k] = (A & 15) * 16
+		r.Buffer[r.Bufferpos/50+k] = (A & 15) * 16
 	}
 }
 
-func RenderVoicedSample(hi uint, off, phase1 byte) byte {
+func (r *Render) RenderVoicedSample(hi uint, off, phase1 byte) byte {
 	for ok := true; ok; ok = (phase1 != 0) {
 		sample := sampleTable[hi+uint(off)]
 		var bit byte = 8
 		for ok := true; ok; ok = (bit != 0) {
 			if (sample & 128) != 0 {
-				Output(3, 26)
+				r.Output(3, 26)
 			} else {
-				Output(4, 6)
+				r.Output(4, 6)
 			}
 			sample <<= 1
 			bit--
@@ -67,15 +75,15 @@ func RenderVoicedSample(hi uint, off, phase1 byte) byte {
 	return off
 }
 
-func RenderUnvoicedSample(hi uint, off, mem53 byte) {
+func (r *Render) RenderUnvoicedSample(hi uint, off, mem53 byte) {
 	for ok := true; ok; ok = (off != 0) {
 		var bit byte = 8
 		sample := sampleTable[hi+uint(off)]
 		for ok := true; ok; ok = (bit != 0) {
 			if (sample & 128) != 0 {
-				Output(2, 5)
+				r.Output(2, 5)
 			} else {
-				Output(1, mem53)
+				r.Output(1, mem53)
 			}
 			sample <<= 1
 			bit--
@@ -138,7 +146,7 @@ func RenderUnvoicedSample(hi uint, off, mem53 byte) {
 //
 // For voices samples, samples are interleaved between voiced output.
 
-func RenderSample(mem66 *byte, consonantFlag, mem49 byte) {
+func (r *Render) RenderSample(mem66 *byte, consonantFlag, mem49 byte) {
 	// mem49 == current phoneme's index
 
 	// mask low three bits and subtract 1 get value to
@@ -157,11 +165,11 @@ func RenderSample(mem66 *byte, consonantFlag, mem49 byte) {
 	pitch := consonantFlag & 248
 	if pitch == 0 {
 		// voiced phoneme: Z*, ZH, V*, DH
-		pitch = pitches[mem49] >> 4
-		*mem66 = RenderVoicedSample(hi, *mem66, pitch^255)
+		pitch = r.pitches[mem49] >> 4
+		*mem66 = r.RenderVoicedSample(hi, *mem66, pitch^255)
 		return
 	}
-	RenderUnvoicedSample(hi, pitch^255, tab48426[hibyte])
+	r.RenderUnvoicedSample(hi, pitch^255, tab48426[hibyte])
 }
 
 // CREATE FRAMES
@@ -172,7 +180,7 @@ func RenderSample(mem66 *byte, consonantFlag, mem49 byte) {
 //
 // The parameters are copied from the phoneme to the frame verbatim.
 //
-func CreateFrames() {
+func (r *Render) CreateFrames(cfg *config.Config) {
 	var phase1, X byte
 
 	i := 0
@@ -181,14 +189,14 @@ func CreateFrames() {
 		phoneme := global.PhonemeIndexOutput[i]
 
 		// if terminal phoneme, exit the loop
-		if phoneme == 255 {
+		if phoneme == global.END {
 			break
 		}
 
 		if phoneme == global.PHONEME_PERIOD {
-			AddInflection(global.RISING_INFLECTION, phase1, X)
+			r.AddInflection(global.RISING_INFLECTION, phase1, X)
 		} else if phoneme == global.PHONEME_QUESTION {
-			AddInflection(global.FALLING_INFLECTION, phase1, X)
+			r.AddInflection(global.FALLING_INFLECTION, phase1, X)
 		}
 
 		// get the stress amount (more stress = higher pitch)
@@ -199,14 +207,14 @@ func CreateFrames() {
 
 		// copy from the source to the frames list
 		for ok := true; ok; ok = (phase2 != 0) {
-			frequency1[X] = freq1data[phoneme]                       // F1 frequency
-			frequency2[X] = freq2data[phoneme]                       // F2 frequency
-			frequency3[X] = freq3data[phoneme]                       // F3 frequency
-			amplitude1[X] = ampl1data[phoneme]                       // F1 amplitude
-			amplitude2[X] = ampl2data[phoneme]                       // F2 amplitude
-			amplitude3[X] = ampl3data[phoneme]                       // F3 amplitude
-			sampledConsonantFlag[X] = sampledConsonantFlags[phoneme] // phoneme data for sampled consonants
-			pitches[X] = global.Pitch + phase1                       // pitch
+			r.frequency1[X] = freq1data[phoneme]                       // F1 frequency
+			r.frequency2[X] = freq2data[phoneme]                       // F2 frequency
+			r.frequency3[X] = freq3data[phoneme]                       // F3 frequency
+			r.amplitude1[X] = ampl1data[phoneme]                       // F1 amplitude
+			r.amplitude2[X] = ampl2data[phoneme]                       // F2 amplitude
+			r.amplitude3[X] = ampl3data[phoneme]                       // F3 amplitude
+			r.sampledConsonantFlag[X] = sampledConsonantFlags[phoneme] // phoneme data for sampled consonants
+			r.pitches[X] = cfg.Pitch + phase1                          // pitch
 			X++
 			phase2--
 		}
@@ -219,11 +227,11 @@ func CreateFrames() {
 //
 // Rescale volume from a linear scale to decibels.
 //
-func RescaleAmplitude() {
+func (r *Render) RescaleAmplitude() {
 	for i := 255; i >= 0; i-- {
-		amplitude1[i] = amplitudeRescale[amplitude1[i]]
-		amplitude2[i] = amplitudeRescale[amplitude2[i]]
-		amplitude3[i] = amplitudeRescale[amplitude3[i]]
+		r.amplitude1[i] = amplitudeRescale[r.amplitude1[i]]
+		r.amplitude2[i] = amplitudeRescale[r.amplitude2[i]]
+		r.amplitude3[i] = amplitudeRescale[r.amplitude3[i]]
 	}
 }
 
@@ -233,11 +241,11 @@ func RescaleAmplitude() {
 // pitch contour. Without this, the output would be at a single
 // pitch level (monotone).
 
-func AssignPitchContour() {
+func (r *Render) AssignPitchContour() {
 	for i := 0; i < 256; i++ {
 		// subtract half the frequency of the formant 1.
 		// this adds variety to the voice
-		pitches[i] -= (frequency1[i] >> 1)
+		r.pitches[i] -= (r.frequency1[i] >> 1)
 	}
 }
 
@@ -254,31 +262,31 @@ func AssignPitchContour() {
 // 3. Offset the pitches by the fundamental frequency.
 //
 // 4. Render the each frame.
-func Render() {
-	if global.PhonemeIndexOutput[0] == 255 {
+func (r *Render) Render(cfg *config.Config) {
+	if global.PhonemeIndexOutput[0] == global.END {
 		return
 	} //exit if no data
 
-	CreateFrames()
-	t := CreateTransitions()
+	r.CreateFrames(cfg)
+	t := r.CreateTransitions()
 
-	if !global.Singmode {
-		AssignPitchContour()
+	if !cfg.Singmode {
+		r.AssignPitchContour()
 	}
-	RescaleAmplitude()
+	r.RescaleAmplitude()
 
-	if global.Debug {
-		global.PrintOutput(sampledConsonantFlag[:], frequency1[:], frequency2[:], frequency3[:], amplitude1[:], amplitude2[:], amplitude3[:], pitches[:])
+	if cfg.Debug {
+		global.PrintOutput(r.sampledConsonantFlag[:], r.frequency1[:], r.frequency2[:], r.frequency3[:], r.amplitude1[:], r.amplitude2[:], r.amplitude3[:], r.pitches[:])
 	}
 
-	ProcessFrames(t)
+	r.ProcessFrames(t, cfg)
 }
 
 // Create a rising or falling inflection 30 frames prior to
 // index X. A rising inflection is used for questions, and
 // a falling inflection is used for statements.
 
-func AddInflection(inflection, phase1, pos byte) {
+func (r *Render) AddInflection(inflection, phase1, pos byte) {
 	var A byte
 	// store the location of the punctuation
 	end := pos
@@ -291,20 +299,20 @@ func AddInflection(inflection, phase1, pos byte) {
 
 	// FIXME: Explain this fix better, it's not obvious
 	// ML : A =, fixes a problem with invalid pitch with '.'
-	for pitches[pos] == 127 {
+	for r.pitches[pos] == 127 {
 		pos++
 	}
-	A = pitches[pos-1]
+	A = r.pitches[pos-1]
 
 	for pos != end {
 		// add the inflection direction
 		A += inflection
 
 		// set the inflection
-		pitches[pos] = A
+		r.pitches[pos] = A
 
 		pos++
-		for (pos != end) && pitches[pos] == 255 {
+		for (pos != end) && r.pitches[pos] == 255 {
 			pos++
 		}
 	}
@@ -317,7 +325,7 @@ func AddInflection(inflection, phase1, pos byte) {
 */
 func SetMouthThroat(mouth, throat byte) {
 	var initialFrequency byte
-	var newFrequency byte = 0
+	var newFrequency byte
 
 	// mouth formants (F1) 5..29
 	mouthFormants5_29 := [30]byte{

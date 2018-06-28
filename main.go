@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/exploser/sam/global"
+	"github.com/exploser/sam/config"
 	"github.com/exploser/sam/reciter"
+	"github.com/exploser/sam/render"
 	"github.com/exploser/sam/sammain"
 
 	"github.com/faiface/beep"
@@ -76,6 +77,8 @@ func main() {
 
 	wavfilename := ""
 
+	cfg := config.DefaultConfig()
+
 	i = 1
 	for i < len(os.Args) {
 		if os.Args[i][0] != '-' {
@@ -86,18 +89,18 @@ func main() {
 				wavfilename = os.Args[i+1]
 				i++
 			case "sing":
-				sammain.EnableSingmode()
+				cfg.EnableSingmode()
 			case "phonetic":
 				phonetic = true
 			case "debug":
-				global.Debug = true
+				cfg.Debug = true
 			case "pitch":
 				val, err := strconv.Atoi(os.Args[i+1])
 				if err != nil {
 					fmt.Println("Error: ", err)
 					os.Exit(1)
 				}
-				sammain.SetPitch(byte(val))
+				cfg.SetPitch(byte(val))
 				i++
 			case "speed":
 				val, err := strconv.Atoi(os.Args[i+1])
@@ -105,7 +108,7 @@ func main() {
 					fmt.Println("Error: ", err)
 					os.Exit(1)
 				}
-				sammain.SetSpeed(byte(val))
+				cfg.SetSpeed(byte(val))
 				i++
 			case "mouth":
 				val, err := strconv.Atoi(os.Args[i+1])
@@ -113,7 +116,7 @@ func main() {
 					fmt.Println("Error: ", err)
 					os.Exit(1)
 				}
-				sammain.SetMouth(byte(val))
+				cfg.SetMouth(byte(val))
 				i++
 			case "throat":
 				val, err := strconv.Atoi(os.Args[i+1])
@@ -121,7 +124,7 @@ func main() {
 					fmt.Println("Error: ", err)
 					os.Exit(1)
 				}
-				sammain.SetThroat(byte(val))
+				cfg.SetThroat(byte(val))
 				i++
 			default:
 				PrintUsage()
@@ -139,7 +142,7 @@ func main() {
 		data[i] = byte(input[i])
 	}
 
-	if global.Debug {
+	if cfg.Debug {
 		if phonetic {
 			fmt.Printf("phonetic input: %s\n", string(data[:]))
 		} else {
@@ -150,21 +153,30 @@ func main() {
 	if !phonetic {
 		data[i] = '['
 
-		if reciter.TextToPhonemes(data[:]) == 0 {
+		if reciter.TextToPhonemes(data[:], cfg) == 0 {
 			os.Exit(1)
 		}
-		if global.Debug {
+		if cfg.Debug {
 			fmt.Printf("phonetic input: %s\n", data)
 		}
 	} else {
 		data[i] = '\x9b'
 	}
 
-	sammain.SetInput(data)
-	if !sammain.SAMMain() {
+	sam := sammain.Sam{
+		Config: cfg,
+	}
+	sam.SetInput(data)
+	if !sam.SAMMain() {
 		// PrintUsage()
 		os.Exit(2)
 	}
+
+	r := render.Render{
+		Buffer: make([]byte, 22050*10),
+	}
+
+	sam.PrepareOutput(&r)
 
 	if wavfilename != "" {
 		file, err := os.Create(wavfilename)
@@ -172,14 +184,14 @@ func main() {
 			fmt.Println("Error: ", err)
 			os.Exit(3)
 		}
-		_, err = wav.NewWriter(file, uint32(sammain.GetBufferLength()), 1, 22050, 8).Write(sammain.GetBuffer())
+		_, err = wav.NewWriter(file, uint32(r.GetBufferLength()), 1, 22050, 8).Write(r.GetBuffer())
 		if err != nil {
 			fmt.Println("Error: ", err)
 			os.Exit(4)
 		}
 	} else {
 		buf := &bytes.Buffer{}
-		_, err := wav.NewWriter(buf, uint32(sammain.GetBufferLength()), 1, 22050, 8).Write(sammain.GetBuffer())
+		_, err := wav.NewWriter(buf, uint32(r.GetBufferLength()), 1, 22050, 8).Write(r.GetBuffer())
 		if err != nil {
 			fmt.Println("Error: ", err)
 			os.Exit(5)
