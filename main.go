@@ -24,18 +24,22 @@ import (
 func main() {
 	var args struct {
 		config.Config
-		Wav          string   `arg:"-w" help:"output to wav instead of libsdl"`
+		Wav          string   `arg:"-w" help:"output to wav instead of sound card"`
 		Input        []string `arg:"positional"`
 		Phonetic     bool     `arg:"-P" help:"enters phonetic mode (use -P to show phonetic guide)"`
 		PhoneticHelp bool     `arg:"-g" help:"show phonetic guide"`
 	}
 
 	args.Config = *config.DefaultConfig()
-	arg.MustParse(&args)
+	p := arg.MustParse(&args)
 
 	if args.PhoneticHelp {
 		printPhoneticGuide()
 		return
+	}
+
+	if len(args.Input) == 0 {
+		p.WriteHelp(os.Stdout)
 	}
 
 	r := generateSpeech(strings.Join(args.Input, " "), &args.Config, args.Phonetic)
