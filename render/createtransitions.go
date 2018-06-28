@@ -97,7 +97,7 @@ func Write(p, Y, value byte) {
 	fmt.Printf("Error writing to tables\n")
 }
 
-func abs(x byte) byte {
+func abs(x int) int {
 	if x < 0 {
 		return -x
 	}
@@ -108,7 +108,7 @@ func abs(x byte) byte {
 // linearly interpolate values
 func interpolate(width, table, frame, mem53 byte) {
 	sign := ((mem53) < 0)
-	remainder := abs(mem53) % width
+	remainder := mem53 % width
 	div := ((mem53) / width)
 
 	var error byte = 0
@@ -129,6 +129,7 @@ func interpolate(width, table, frame, mem53 byte) {
 		frame++
 		Write(table, frame, val) // Write updated value back to next frame.
 		val += div
+		pos--
 	}
 }
 

@@ -1,0 +1,4 @@
+*.wav
+.vscode/
+sam
+debug

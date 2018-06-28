@@ -1,4 +1,4 @@
-package sam
+package sammain
 
 import (
 	"fmt"
@@ -21,17 +21,10 @@ var stress [256]byte        //numbers from 0 to 8
 var phonemeLength [256]byte //tab40160
 var phonemeindex [256]byte
 
-var phonemeIndexOutput [60]byte  //tab47296
-var stressOutput [60]byte        //tab47365
-var phonemeLengthOutput [60]byte //tab47416
-
 // contains the final soundbuffer
 
-func SetInput(_input string) {
-	for i := 0; i < len(_input); i++ {
-		global.Input[i] = _input[i]
-	}
-	global.Input[len(_input)] = 0
+func SetInput(_input [256]byte) {
+	global.Input = _input
 }
 
 func SetSpeed(_speed byte)   { global.Speed = _speed }
@@ -56,23 +49,23 @@ func Init() {
 	}
 
 	for i = 0; i < 60; i++ {
-		phonemeIndexOutput[i] = 0
-		stressOutput[i] = 0
-		phonemeLengthOutput[i] = 0
+		global.PhonemeIndexOutput[i] = 0
+		global.StressOutput[i] = 0
+		global.PhonemeLengthOutput[i] = 0
 	}
 	phonemeindex[255] = global.END //to prevent buffer overflow // ML : changed from 32 to 255 to stop freezing with long inputs
 }
 
-func SAMMain() int {
+func SAMMain() bool {
 	Init()
 	/* FIXME: At odds with assignment in Init() */
 	phonemeindex[255] = 32 //to prevent buffer overflow
 
 	if !Parser1() {
-		return 0
+		return false
 	}
 	if global.Debug {
-		global.PrintPhonemes(phonemeindex, phonemeLength, stress)
+		global.PrintPhonemes(phonemeindex[:], phonemeLength[:], stress[:])
 	}
 	Parser2()
 	CopyStress()
@@ -89,11 +82,11 @@ func SAMMain() int {
 	InsertBreath(mem59)
 
 	if global.Debug {
-		global.PrintPhonemes(phonemeindex, phonemeLength, stress)
+		global.PrintPhonemes(phonemeindex[:], phonemeLength[:], stress[:])
 	}
 
 	PrepareOutput()
-	return 1
+	return true
 }
 
 func PrepareOutput() {
@@ -102,21 +95,21 @@ func PrepareOutput() {
 
 	for {
 		A := phonemeindex[srcpos]
-		phonemeIndexOutput[destpos] = A
+		global.PhonemeIndexOutput[destpos] = A
 		switch A {
 		case global.END:
 			render.Render()
 			return
 		case global.BREAK:
-			phonemeIndexOutput[destpos] = global.END
+			global.PhonemeIndexOutput[destpos] = global.END
 			render.Render()
 			destpos = 0
 			break
 		case 0:
 			break
 		default:
-			phonemeLengthOutput[destpos] = phonemeLength[srcpos]
-			stressOutput[destpos] = stress[srcpos]
+			global.PhonemeLengthOutput[destpos] = phonemeLength[srcpos]
+			global.StressOutput[destpos] = stress[srcpos]
 			destpos++
 		}
 		srcpos++
@@ -218,10 +211,10 @@ func full_match(sign1, sign2 byte) int {
 	for ok := true; ok; ok = (Y != 81) {
 		// GET FIRST CHARACTER AT POSITION Y IN signInputTable
 		// --> should change name to PhonemeNameTable1
-		A := signInputTable1[Y]
+		A := global.SignInputTable1[Y]
 
 		if A == sign1 {
-			A = signInputTable2[Y]
+			A = global.SignInputTable2[Y]
 			// NOT A SPECIAL AND MATCHES SECOND CHARACTER?
 			if (A != '*') && (A == sign2) {
 				return int(Y)
@@ -235,8 +228,8 @@ func full_match(sign1, sign2 byte) int {
 func wild_match(sign1, sign2 byte) int {
 	var Y int = 0
 	for ok := true; ok; ok = (Y != 81) {
-		if signInputTable2[Y] == '*' {
-			if signInputTable1[Y] == sign1 {
+		if global.SignInputTable2[Y] == '*' {
+			if global.SignInputTable1[Y] == sign1 {
 				return Y
 			}
 		}
@@ -254,8 +247,8 @@ func wild_match(sign1, sign2 byte) int {
 // long, such as "DH" and "AX". Others are 1 byte long, such as "T" and "Z".
 // There are also stress markers, such as "5" and ".".
 //
-// The first character of the phonemes are stored in the table signInputTable1[].
-// The second character of the phonemes are stored in the table signInputTable2[].
+// The first character of the phonemes are stored in the table global.SignInputTable1[].
+// The second character of the phonemes are stored in the table global.SignInputTable2[].
 // The stress characters are arranged in low to high stress order in stressInputTable[].
 //
 // The following process is used to parse the input[] buffer:
@@ -285,12 +278,12 @@ func wild_match(sign1, sign2 byte) int {
 //    3. stress[] will contain the stress value for each phoneme
 
 // input[] holds the string of phonemes, each two bytes wide
-// signInputTable1[] holds the first character of each phoneme
-// signInputTable2[] holds te second character of each phoneme
+// global.SignInputTable1[] holds the first character of each phoneme
+// global.SignInputTable2[] holds te second character of each phoneme
 // phonemeIndex[] holds the indexes of the phonemes after parsing input[]
 //
 // The parser scans through the input[], finding the names of the phonemes
-// by searching signInputTable1[] and signInputTable2[]. On a match, it
+// by searching global.SignInputTable1[] and global.SignInputTable2[]. On a match, it
 // copies the index of the phoneme into the phonemeIndexTable[].
 //
 // The character <0x9B> marks the end of text in input[]. When it is reached,
@@ -306,16 +299,18 @@ func Parser1() bool {
 	for i = 0; i < 256; i++ {
 		stress[i] = 0
 	} // Clear the stress table.
+
 	sign1 = global.Input[srcpos]
-	for global.Input[srcpos] != 155 { // 155 (\233) is end of line marker
-		sign1 = global.Input[srcpos]
+	for sign1 != 155 { // 155 (\233) is end of line marker
 		srcpos++
 		sign2 = global.Input[srcpos]
 		match := full_match(sign1, sign2)
 		if match != -1 {
 			// Matched both characters (no wildcards)
 			phonemeindex[position] = byte(match)
+			position++
 			srcpos++ // Skip the second character of the input as we've matched it
+			sign1 = global.Input[srcpos]
 			continue
 		}
 		match = wild_match(sign1, sign2)
@@ -327,7 +322,7 @@ func Parser1() bool {
 			// Should be a stress character. Search through the
 			// stress table backwards.
 			match = 8 // End of stress table. FIXME: Don't hardcode.
-			for (sign1 != stressInputTable[match]) && (match > 0) {
+			for (sign1 != global.StressInputTable[match]) && (match > 0) {
 				match--
 			}
 
@@ -337,6 +332,7 @@ func Parser1() bool {
 
 			stress[position-1] = byte(match) // Set stress for prior phoneme
 		}
+		sign1 = global.Input[srcpos]
 	} //while
 
 	phonemeindex[position] = global.END
@@ -408,7 +404,7 @@ func drule_pre(descr string, X byte) {
 		fmt.Printf("PRE\n")
 	}
 	if global.Debug {
-		fmt.Printf("phoneme %d (%c%c) length %d\n", X, signInputTable1[phonemeindex[X]], signInputTable2[phonemeindex[X]], phonemeLength[X])
+		fmt.Printf("phoneme %d (%c%c) length %d\n", X, global.SignInputTable1[phonemeindex[X]], global.SignInputTable2[phonemeindex[X]], phonemeLength[X])
 	}
 }
 
@@ -417,7 +413,7 @@ func drule_post(X byte) {
 		fmt.Printf("POST\n")
 	}
 	if global.Debug {
-		fmt.Printf("phoneme %d (%c%c) length %d\n", X, signInputTable1[phonemeindex[X]], signInputTable2[phonemeindex[X]], phonemeLength[X])
+		fmt.Printf("phoneme %d (%c%c) length %d\n", X, global.SignInputTable1[phonemeindex[X]], global.SignInputTable2[phonemeindex[X]], phonemeLength[X])
 	}
 }
 
@@ -524,7 +520,7 @@ func Parser2() {
 	for phonemeindex[pos] != global.END {
 		p = phonemeindex[pos]
 		if global.Debug {
-			fmt.Printf("%d: %c%c\n", pos, signInputTable1[p], signInputTable2[p])
+			fmt.Printf("%d: %c%c\n", pos, global.SignInputTable1[p], global.SignInputTable2[p])
 		}
 
 		if p == 0 { // Is phoneme pause?
@@ -577,7 +573,7 @@ func Parser2() {
 				// Example: COW
 				var Y = phonemeindex[pos+1]
 				// If at end, replace current phoneme with KX
-				if (flags[Y]&FLAG_DIP_YX) == 0 || Y == global.END { // VOWELS AND DIPTHONGS ENDING WITH IY SOUND flag set?
+				if Y == global.END || (flags[Y]&FLAG_DIP_YX) == 0 { // VOWELS AND DIPTHONGS ENDING WITH IY SOUND flag set?
 					change(pos, 75, "K <VOWEL OR DIPTHONG NOT ENDING WITH IY> -> KX <VOWEL OR DIPTHONG NOT ENDING WITH IY>")
 					p = 75
 					pf = flags[p]
@@ -594,7 +590,7 @@ func Parser2() {
 				// Examples: SPY, STY, SKY, SCOWL
 
 				if global.Debug {
-					fmt.Printf("RULE: S* %c%c -> S* %c%c\n", signInputTable1[p], signInputTable2[p], signInputTable1[p-12], signInputTable2[p-12])
+					fmt.Printf("RULE: S* %c%c -> S* %c%c\n", global.SignInputTable1[p], global.SignInputTable2[p], global.SignInputTable1[p-12], global.SignInputTable2[p-12])
 				}
 				phonemeindex[pos] = p - 12
 			} else if !(pf&FLAG_PLOSIVE != 0) {

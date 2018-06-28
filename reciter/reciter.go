@@ -1,6 +1,8 @@
 package reciter
 
-import "test/sam/global"
+import (
+	"test/sam/global"
+)
 
 var A, X, Y byte
 
@@ -96,7 +98,7 @@ func TextToPhonemes(input []byte) int {
 		mem64, // position of '=' or current character
 		mem65, // position of ')'
 		mem66 byte // position of '('
-	var mem62 int // memory position of current rule
+	var mem62 uint16 // memory position of current rule
 
 	inputtemp[0] = ' '
 
@@ -169,7 +171,8 @@ pos36554:
 
 	// go to the right rules for this character.
 	X = mem64 - 'A'
-	mem62 = int(global.Tab37489[X] | (global.Tab37515[X] << 8))
+	mem62 = uint16(global.Tab37489[X]) | uint16(global.Tab37515[X])<<8
+	// fmt.Println(mem62)
 
 pos36700:
 	mem62++
@@ -179,14 +182,17 @@ pos36700:
 	}
 	var Y byte = 1
 	for global.GetRuleByte(mem62, Y) != '(' {
+		Y++
 	}
 	mem66 = Y
 	Y++
 	for global.GetRuleByte(mem62, Y) != ')' {
+		Y++
 	}
 	mem65 = Y
 	Y++
 	for (global.GetRuleByte(mem62, Y) & 127) != '=' {
+		Y++
 	}
 	mem64 = Y
 
@@ -318,7 +324,7 @@ pos37184:
 				mem61 = mem60
 
 				if global.Debug {
-					global.PrintRule(mem62)
+					global.PrintRule(int(mem62))
 				}
 
 				for {

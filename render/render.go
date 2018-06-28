@@ -1,6 +1,8 @@
 package render
 
-import "test/sam/global"
+import (
+	"test/sam/global"
+)
 
 var wait1 byte = 7
 var wait2 byte = 6
@@ -22,7 +24,7 @@ var sampledConsonantFlag [256]byte // tab44800
 
 //return = hibyte(mem39212*mem39213) <<  1
 func trans(a, b byte) byte {
-	return ((a * b) >> 8) << 1
+	return byte(((int(a) * int(b)) >> 8) << 1)
 }
 
 //timetable for more accurate c64 simulation
@@ -218,11 +220,11 @@ func CreateFrames() {
 // Rescale volume from a linear scale to decibels.
 //
 func RescaleAmplitude() {
-	var i int
-	for i = 255; i >= 0; i-- {
-		amplitude1[i] = amplitudeRescale[amplitude1[i]]
-		amplitude2[i] = amplitudeRescale[amplitude2[i]]
-		amplitude3[i] = amplitudeRescale[amplitude3[i]]
+	for i := 255; i >= 0; i-- {
+		// fmt.Println(amplitude1[i])
+		// amplitude1[i] = amplitudeRescale[amplitude1[i]]
+		// amplitude2[i] = amplitudeRescale[amplitude2[i]]
+		// amplitude3[i] = amplitudeRescale[amplitude3[i]]
 	}
 }
 

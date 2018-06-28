@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"test/sam/reciter"
-	"test/sam/sam"
+	"test/sam/sammain"
 
 	"github.com/youpy/go-wav"
 )
@@ -68,38 +68,54 @@ func main() {
 		os.Exit(1)
 	}
 
-	var wavfilename string
+	wavfilename := "out.wav"
 
 	i = 1
 	for i < len(os.Args) {
 		if os.Args[i][0] != '-' {
 			input += os.Args[i] + " "
 		} else {
-			switch os.Args[i] {
+			switch os.Args[i][1:] {
 			case "wav":
 				wavfilename = os.Args[i+1]
 				i++
 			case "sing":
-				sam.EnableSingmode()
+				sammain.EnableSingmode()
 			case "phonetic":
 				phonetic = true
 			case "debug":
 				debug = true
 			case "pitch":
 				val, err := strconv.Atoi(os.Args[i+1])
-				sam.SetPitch(byte(val))
+				if err != nil {
+					fmt.Println("Error: ", err)
+					os.Exit(1)
+				}
+				sammain.SetPitch(byte(val))
 				i++
 			case "speed":
 				val, err := strconv.Atoi(os.Args[i+1])
-				sam.SetSpeed(byte(val))
+				if err != nil {
+					fmt.Println("Error: ", err)
+					os.Exit(1)
+				}
+				sammain.SetSpeed(byte(val))
 				i++
 			case "mouth":
 				val, err := strconv.Atoi(os.Args[i+1])
-				sam.SetMouth(byte(val))
+				if err != nil {
+					fmt.Println("Error: ", err)
+					os.Exit(1)
+				}
+				sammain.SetMouth(byte(val))
 				i++
 			case "throat":
 				val, err := strconv.Atoi(os.Args[i+1])
-				sam.SetThroat(byte(val))
+				if err != nil {
+					fmt.Println("Error: ", err)
+					os.Exit(1)
+				}
+				sammain.SetThroat(byte(val))
 				i++
 			default:
 				PrintUsage()
@@ -112,42 +128,50 @@ func main() {
 
 	input = strings.ToUpper(input)
 
+	var data [256]byte
+	var c rune
+	for i, c = range input {
+		data[i] = byte(c)
+	}
+
 	if debug {
 		if phonetic {
-			fmt.Printf("phonetic input: %s\n", input)
+			fmt.Printf("phonetic input: %s\n", string(data[:]))
 		} else {
-			fmt.Printf("text input: %s\n", input)
+			fmt.Printf("text input: %s\n", string(data[:]))
 		}
 	}
 
 	if !phonetic {
-		input += "["
-		if reciter.TextToPhonemes([]byte(input)) == 0 {
+		data[i] = '['
+
+		fmt.Println("DBG ", string(data[:]))
+		if reciter.TextToPhonemes(data[:]) == 0 {
 			os.Exit(1)
 		}
 		if debug {
-			fmt.Printf("phonetic input: %s\n", input)
+			fmt.Printf("phonetic input: %s\n", data)
 		}
 	} else {
 		input += "\x9b"
 	}
 
-	sam.SetInput(input)
-	if sam.SAMMain() == 0 {
-		PrintUsage()
-		os.Exit(1)
+	sammain.SetInput(data)
+	if !sammain.SAMMain() {
+		// PrintUsage()
+		os.Exit(2)
 	}
 
 	if wavfilename != "" {
 		file, err := os.Create(wavfilename)
 		if err != nil {
 			fmt.Println("Error: ", err)
-			os.Exit(1)
+			os.Exit(3)
 		}
-		_, err = wav.NewWriter(file, uint32(sam.GetBufferLength()), 1, 22050, 8).Write(sam.GetBuffer())
+		_, err = wav.NewWriter(file, uint32(sammain.GetBufferLength()), 1, 22050, 8).Write(sammain.GetBuffer())
 		if err != nil {
 			fmt.Println("Error: ", err)
-			os.Exit(1)
+			os.Exit(4)
 		}
 		// WriteWav(wavfilename, GetBuffer(), GetBufferLength()/50)
 	} else {

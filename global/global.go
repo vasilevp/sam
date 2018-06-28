@@ -3,21 +3,53 @@ package global
 import "fmt"
 
 const (
-	Debug              = true
 	PHONEME_PERIOD     = 1
 	PHONEME_QUESTION   = 2
 	RISING_INFLECTION  = 1
 	FALLING_INFLECTION = 255
 )
 
-var SignInputTable1 []byte
-var SignInputTable2 []byte
+var (
+	StressInputTable = []byte{
+		'*', '1', '2', '3', '4', '5', '6', '7', '8',
+	}
+
+	//tab40682
+	SignInputTable1 = []byte{
+		' ', '.', '?', ',', '-', 'I', 'I', 'E',
+		'A', 'A', 'A', 'A', 'U', 'A', 'I', 'E',
+		'U', 'O', 'R', 'L', 'W', 'Y', 'W', 'R',
+		'L', 'W', 'Y', 'M', 'N', 'N', 'D', 'Q',
+		'S', 'S', 'F', 'T', '/', '/', 'Z', 'Z',
+		'V', 'D', 'C', '*', 'J', '*', '*', '*',
+		'E', 'A', 'O', 'A', 'O', 'U', 'B', '*',
+		'*', 'D', '*', '*', 'G', '*', '*', 'G',
+		'*', '*', 'P', '*', '*', 'T', '*', '*',
+		'K', '*', '*', 'K', '*', '*', 'U', 'U',
+		'U',
+	}
+
+	//tab40763
+	SignInputTable2 = []byte{
+		'*', '*', '*', '*', '*', 'Y', 'H', 'H',
+		'E', 'A', 'H', 'O', 'H', 'X', 'X', 'R',
+		'X', 'H', 'X', 'X', 'X', 'X', 'H', '*',
+		'*', '*', '*', '*', '*', 'X', 'X', '*',
+		'*', 'H', '*', 'H', 'H', 'X', '*', 'H',
+		'*', 'H', 'H', '*', '*', '*', '*', '*',
+		'Y', 'Y', 'Y', 'W', 'W', 'W', '*', '*',
+		'*', '*', '*', '*', '*', '*', '*', 'X',
+		'*', '*', '*', '*', '*', '*', '*', '*',
+		'*', '*', '*', 'X', '*', '*', 'L', 'M',
+		'N',
+	}
+)
 
 var Bufferpos int
 var Buffer []byte
-var PhonemeIndexOutput []byte
-var PhonemeLengthOutput []byte
-var StressOutput []byte
+var PhonemeIndexOutput [60]byte //tab47296
+var PhonemeLengthOutput [60]byte
+var StressOutput [60]byte
 
 const (
 	PR    = 23
@@ -34,8 +66,9 @@ var Pitch byte = 64
 var Mouth byte = 128
 var Throat byte = 128
 var Singmode = false
+var Debug = false
 
-func PrintPhonemes(phonemeindex [256]byte, phonemeLength [256]byte, stress [256]byte) {
+func PrintPhonemes(phonemeindex []byte, phonemeLength []byte, stress []byte) {
 	i := 0
 	fmt.Printf("===========================================\n")
 
@@ -45,7 +78,7 @@ func PrintPhonemes(phonemeindex [256]byte, phonemeLength [256]byte, stress [256]
 
 	for (phonemeindex[i] != 255) && (i < 255) {
 		if phonemeindex[i] < 81 {
-			fmt.Printf(" %3i      %c%c      %3i       %i\n",
+			fmt.Printf(" %3v      %c%c      %3v       %v\n",
 				phonemeindex[i],
 				SignInputTable1[phonemeindex[i]],
 				SignInputTable2[phonemeindex[i]],
@@ -53,7 +86,7 @@ func PrintPhonemes(phonemeindex [256]byte, phonemeLength [256]byte, stress [256]
 				stress[i],
 			)
 		} else {
-			fmt.Printf(" %3i      ??      %3i       %i\n", phonemeindex[i], phonemeLength[i], stress[i])
+			fmt.Printf(" %3v      ??      %3v       %v\n", phonemeindex[i], phonemeLength[i], stress[i])
 		}
 		i++
 	}
@@ -68,7 +101,7 @@ func PrintOutput(flag, f1, f2, f3, a1, a2, a3, p []byte) {
 	fmt.Printf(" flags ampl1 freq1 ampl2 freq2 ampl3 freq3 pitch\n")
 	fmt.Printf("------------------------------------------------\n")
 	for i < 255 {
-		fmt.Printf("%5i %5i %5i %5i %5i %5i %5i %5i\n", flag[i], a1[i], f1[i], a2[i], f2[i], a3[i], f3[i], p[i])
+		fmt.Printf("%5d %5d %5d %5d %5d %5d %5d %5d\n", flag[i], a1[i], f1[i], a2[i], f2[i], a3[i], f3[i], p[i])
 		i++
 	}
 	fmt.Printf("===========================================\n")
@@ -80,7 +113,7 @@ func PrintRule(offset int) {
 	var A byte = 0
 	fmt.Printf("Applying rule: ")
 	for (A & 128) == 0 {
-		A = GetRuleByte(offset, byte(i))
+		A = GetRuleByte(uint16(offset), byte(i))
 		if (A & 127) == '=' {
 			fmt.Printf(" -> ")
 		} else {
@@ -91,12 +124,14 @@ func PrintRule(offset int) {
 	fmt.Printf("\n")
 }
 
-func GetRuleByte(mem62 int, Y byte) byte {
-	address := mem62
+func GetRuleByte(mem62 uint16, Y byte) byte {
+	var address uint = uint(mem62)
+	// fmt.Println(address, uint16(Y))
 	if mem62 >= 37541 {
 		address -= 37541
-		return Rules2[address+int(Y)]
+		return Rules2[address+uint(Y)]
 	}
 	address -= 32000
-	return Rules[address+int(Y)]
+	// fmt.Println(address, uint(Y))
+	return Rules[address+uint(Y)]
 }
