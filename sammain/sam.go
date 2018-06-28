@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/exploser/sam/config"
-	"github.com/exploser/sam/global"
 	"github.com/exploser/sam/render"
 )
 
@@ -33,12 +32,7 @@ func (s *Sam) Init() {
 		s.phonemeLength[i] = 0
 	}
 
-	for i = 0; i < 60; i++ {
-		global.PhonemeIndexOutput[i] = 0
-		global.StressOutput[i] = 0
-		global.PhonemeLengthOutput[i] = 0
-	}
-	s.phonemeindex[255] = global.END //to prevent buffer overflow // ML : changed from 32 to 255 to stop freezing with long inputs
+	s.phonemeindex[255] = render.PhonemeEnd //to prevent buffer overflow // ML : changed from 32 to 255 to stop freezing with long inputs
 }
 
 func (s *Sam) SAMMain() bool {
@@ -50,7 +44,7 @@ func (s *Sam) SAMMain() bool {
 		return false
 	}
 	if s.Config.Debug {
-		global.PrintPhonemes(s.phonemeindex[:], s.phonemeLength[:], s.stress[:])
+		PrintPhonemes(s.phonemeindex[:], s.phonemeLength[:], s.stress[:])
 	}
 	s.Parser2()
 	s.CopyStress()
@@ -61,7 +55,7 @@ func (s *Sam) SAMMain() bool {
 	var X byte
 	for ok := true; ok; ok = (X != 0) {
 		if s.phonemeindex[X] > 80 {
-			s.phonemeindex[X] = global.END
+			s.phonemeindex[X] = render.PhonemeEnd
 			break // error: delete all behind it
 		}
 		X++
@@ -69,7 +63,7 @@ func (s *Sam) SAMMain() bool {
 	s.InsertBreath(0)
 
 	if s.Config.Debug {
-		global.PrintPhonemes(s.phonemeindex[:], s.phonemeLength[:], s.stress[:])
+		PrintPhonemes(s.phonemeindex[:], s.phonemeLength[:], s.stress[:])
 	}
 
 	// s.PrepareOutput(&s.r)
@@ -82,21 +76,21 @@ func (s *Sam) PrepareOutput(r *render.Render) {
 
 	for {
 		A := s.phonemeindex[srcpos]
-		global.PhonemeIndexOutput[destpos] = A
+		r.PhonemeIndexOutput[destpos] = A
 		switch A {
-		case global.END:
+		case render.PhonemeEnd:
 			r.Render(s.Config)
 			return
-		case global.BREAK:
-			global.PhonemeIndexOutput[destpos] = global.END
+		case BREAK:
+			r.PhonemeIndexOutput[destpos] = render.PhonemeEnd
 			r.Render(s.Config)
 			destpos = 0
 			break
 		case 0:
 			break
 		default:
-			global.PhonemeLengthOutput[destpos] = s.phonemeLength[srcpos]
-			global.StressOutput[destpos] = s.stress[srcpos]
+			r.PhonemeLengthOutput[destpos] = s.phonemeLength[srcpos]
+			r.StressOutput[destpos] = s.stress[srcpos]
 			destpos++
 		}
 		srcpos++
@@ -111,11 +105,11 @@ func (s *Sam) InsertBreath(mem59 byte) {
 	var pos byte
 
 	index = s.phonemeindex[pos]
-	for s.phonemeindex[pos] != global.END {
+	for s.phonemeindex[pos] != render.PhonemeEnd {
 		index = s.phonemeindex[pos]
 		len += s.phonemeLength[pos]
 		if len < 232 {
-			if index == global.BREAK {
+			if index == BREAK {
 			} else if !(flags[index]&FLAG_PUNCT != 0) {
 				if index == 0 {
 					mem54 = pos
@@ -123,7 +117,7 @@ func (s *Sam) InsertBreath(mem59 byte) {
 			} else {
 				len = 0
 				pos++
-				s.Insert(pos, global.BREAK, mem59, 0)
+				s.Insert(pos, BREAK, mem59, 0)
 			}
 		} else {
 			pos = mem54
@@ -133,7 +127,7 @@ func (s *Sam) InsertBreath(mem59 byte) {
 
 			len = 0
 			pos++
-			s.Insert(pos, global.BREAK, mem59, 0)
+			s.Insert(pos, BREAK, mem59, 0)
 		}
 		pos++
 	}
@@ -157,14 +151,14 @@ func (s *Sam) CopyStress() {
 	var pos byte //mem66
 	var Y byte
 	Y = s.phonemeindex[pos]
-	for s.phonemeindex[pos] != global.END {
+	for s.phonemeindex[pos] != render.PhonemeEnd {
 		Y = s.phonemeindex[pos]
 		// if CONSONANT_FLAG set, skip - only vowels get stress
 		if flags[Y]&64 != 0 {
 			Y = s.phonemeindex[pos+1]
 
 			// if the following phoneme is the end, or a vowel, skip
-			if Y != global.END && (flags[Y]&128) != 0 {
+			if Y != render.PhonemeEnd && (flags[Y]&128) != 0 {
 				// get the stress value at the next position
 				Y = s.stress[pos+1]
 				if Y != 0 && !(Y&128 != 0) {
@@ -198,10 +192,10 @@ func full_match(sign1, sign2 byte) int {
 	for ok := true; ok; ok = (Y != 81) {
 		// GET FIRST CHARACTER AT POSITION Y IN signInputTable
 		// --> should change name to PhonemeNameTable1
-		A := global.SignInputTable1[Y]
+		A := SignInputTable1[Y]
 
 		if A == sign1 {
-			A = global.SignInputTable2[Y]
+			A = SignInputTable2[Y]
 			// NOT A SPECIAL AND MATCHES SECOND CHARACTER?
 			if (A != '*') && (A == sign2) {
 				return int(Y)
@@ -215,14 +209,40 @@ func full_match(sign1, sign2 byte) int {
 func wild_match(sign1, sign2 byte) int {
 	var Y int
 	for ok := true; ok; ok = (Y != 81) {
-		if global.SignInputTable2[Y] == '*' {
-			if global.SignInputTable1[Y] == sign1 {
+		if SignInputTable2[Y] == '*' {
+			if SignInputTable1[Y] == sign1 {
 				return Y
 			}
 		}
 		Y++
 	}
 	return -1
+}
+
+func PrintPhonemes(phonemeindex []byte, phonemeLength []byte, stress []byte) {
+	i := 0
+	fmt.Printf("===========================================\n")
+
+	fmt.Printf("Internal Phoneme presentation:\n\n")
+	fmt.Printf(" idx    phoneme  length  stress\n")
+	fmt.Printf("------------------------------\n")
+
+	for (phonemeindex[i] != render.PhonemeEnd) && (i < 255) {
+		if phonemeindex[i] < 81 {
+			fmt.Printf(" %3v      %c%c      %3v       %v\n",
+				phonemeindex[i],
+				SignInputTable1[phonemeindex[i]],
+				SignInputTable2[phonemeindex[i]],
+				phonemeLength[i],
+				stress[i],
+			)
+		} else {
+			fmt.Printf(" %3v      ??      %3v       %v\n", phonemeindex[i], phonemeLength[i], stress[i])
+		}
+		i++
+	}
+	fmt.Printf("===========================================\n")
+	fmt.Printf("\n")
 }
 
 // The input[] buffer contains a string of phonemes and stress markers along
@@ -234,8 +254,8 @@ func wild_match(sign1, sign2 byte) int {
 // long, such as "DH" and "AX". Others are 1 byte long, such as "T" and "Z".
 // There are also stress markers, such as "5" and ".".
 //
-// The first character of the phonemes are stored in the table global.SignInputTable1[].
-// The second character of the phonemes are stored in the table global.SignInputTable2[].
+// The first character of the phonemes are stored in the table SignInputTable1[].
+// The second character of the phonemes are stored in the table SignInputTable2[].
 // The stress characters are arranged in low to high stress order in stressInputTable[].
 //
 // The following process is used to parse the input[] buffer:
@@ -265,12 +285,12 @@ func wild_match(sign1, sign2 byte) int {
 //    3. stress[] will contain the stress value for each phoneme
 
 // input[] holds the string of phonemes, each two bytes wide
-// global.SignInputTable1[] holds the first character of each phoneme
-// global.SignInputTable2[] holds te second character of each phoneme
+// SignInputTable1[] holds the first character of each phoneme
+// SignInputTable2[] holds te second character of each phoneme
 //s.phonemeindex[] holds the indexes of the phonemes after parsing input[]
 //
 // The parser scans through the input[], finding the names of the phonemes
-// by searching global.SignInputTable1[] and global.SignInputTable2[]. On a match, it
+// by searching SignInputTable1[] and SignInputTable2[]. On a match, it
 // copies the index of the phoneme into thes.phonemeindexTable[].
 //
 // The character <0x9B> marks the end of text in input[]. When it is reached,
@@ -306,7 +326,7 @@ func (s *Sam) Parser1() bool {
 			// Should be a stress character. Search through the
 			// stress table backwards.
 			match = 8 // End of stress table. FIXME: Don't hardcode.
-			for (sign1 != global.StressInputTable[match]) && (match > 0) {
+			for (sign1 != StressInputTable[match]) && (match > 0) {
 				match--
 			}
 
@@ -318,7 +338,7 @@ func (s *Sam) Parser1() bool {
 		}
 	} //while
 
-	s.phonemeindex[position] = global.END
+	s.phonemeindex[position] = render.PhonemeEnd
 	return true
 }
 
@@ -339,7 +359,7 @@ func (s *Sam) SetPhonemeLength() {
 func (s *Sam) Code41240() {
 	var pos byte = 0
 
-	for s.phonemeindex[pos] != global.END {
+	for s.phonemeindex[pos] != render.PhonemeEnd {
 		var index = s.phonemeindex[pos]
 
 		if flags[index]&FLAG_STOPCONS != 0 {
@@ -351,7 +371,7 @@ func (s *Sam) Code41240() {
 					A = s.phonemeindex[X]
 				} /* Skip pause */
 
-				if A != global.END {
+				if A != render.PhonemeEnd {
 					if (flags[A]&8 != 0) || (A == 36) || (A == 37) {
 						pos++
 						continue
@@ -387,7 +407,7 @@ func (s *Sam) drule_pre(descr string, X byte) {
 		fmt.Printf("PRE\n")
 	}
 	if s.Config.Debug {
-		fmt.Printf("phoneme %d (%c%c) length %d\n", X, global.SignInputTable1[s.phonemeindex[X]], global.SignInputTable2[s.phonemeindex[X]], s.phonemeLength[X])
+		fmt.Printf("phoneme %d (%c%c) length %d\n", X, SignInputTable1[s.phonemeindex[X]], SignInputTable2[s.phonemeindex[X]], s.phonemeLength[X])
 	}
 }
 
@@ -396,7 +416,7 @@ func (s *Sam) drule_post(X byte) {
 		fmt.Printf("POST\n")
 	}
 	if s.Config.Debug {
-		fmt.Printf("phoneme %d (%c%c) length %d\n", X, global.SignInputTable1[s.phonemeindex[X]], global.SignInputTable2[s.phonemeindex[X]], s.phonemeLength[X])
+		fmt.Printf("phoneme %d (%c%c) length %d\n", X, SignInputTable1[s.phonemeindex[X]], SignInputTable2[s.phonemeindex[X]], s.phonemeLength[X])
 	}
 }
 
@@ -500,10 +520,10 @@ func (s *Sam) Parser2() {
 		fmt.Printf("Parser2\n")
 	}
 	p = s.phonemeindex[pos]
-	for s.phonemeindex[pos] != global.END {
+	for s.phonemeindex[pos] != render.PhonemeEnd {
 		p = s.phonemeindex[pos]
 		if s.Config.Debug {
-			fmt.Printf("%d: %c%c\n", pos, global.SignInputTable1[p], global.SignInputTable2[p])
+			fmt.Printf("%d: %c%c\n", pos, SignInputTable1[p], SignInputTable2[p])
 		}
 
 		if p == 0 { // Is phoneme pause?
@@ -528,15 +548,15 @@ func (s *Sam) Parser2() {
 			// EXAMPLE: AWAY EIGHT
 			if s.phonemeindex[pos+1] == 0 { // If following phoneme is a pause, get next
 				p = s.phonemeindex[pos+2]
-				if p != global.END && (flags[p]&FLAG_VOWEL != 0) && s.stress[pos+2] != 0 {
+				if p != render.PhonemeEnd && (flags[p]&FLAG_VOWEL != 0) && s.stress[pos+2] != 0 {
 					s.drule("Insert glottal stop between two stressed vowels with space between them")
 					s.Insert(pos+2, 31, 0, 0) // 31 = 'Q'
 				}
 			}
-		} else if p == global.PR { // RULES FOR PHONEMES BEFORE R
-			if prior == global.PT {
+		} else if p == pR { // RULES FOR PHONEMES BEFORE R
+			if prior == pT {
 				s.change(pos-1, 42, "T R -> CH R") // Example: TRACK
-			} else if prior == global.PD {
+			} else if prior == pD {
 				s.change(pos-1, 44, "D R -> J R") // Example: DRY
 			} else if flags[prior]&FLAG_VOWEL != 0 {
 				s.change(pos, 18, "<VOWEL> R -> <VOWEL> RX")
@@ -556,7 +576,7 @@ func (s *Sam) Parser2() {
 				// Example: COW
 				var Y = s.phonemeindex[pos+1]
 				// If at end, replace current phoneme with KX
-				if Y == global.END || (flags[Y]&FLAG_DIP_YX) == 0 { // VOWELS AND DIPTHONGS ENDING WITH IY SOUND flag set?
+				if Y == render.PhonemeEnd || (flags[Y]&FLAG_DIP_YX) == 0 { // VOWELS AND DIPTHONGS ENDING WITH IY SOUND flag set?
 					s.change(pos, 75, "K <VOWEL OR DIPTHONG NOT ENDING WITH IY> -> KX <VOWEL OR DIPTHONG NOT ENDING WITH IY>")
 					p = 75
 					pf = flags[p]
@@ -573,7 +593,7 @@ func (s *Sam) Parser2() {
 				// Examples: SPY, STY, SKY, SCOWL
 
 				if s.Config.Debug {
-					fmt.Printf("RULE: S* %c%c -> S* %c%c\n", global.SignInputTable1[p], global.SignInputTable2[p], global.SignInputTable1[p-12], global.SignInputTable2[p-12])
+					fmt.Printf("RULE: S* %c%c -> S* %c%c\n", SignInputTable1[p], SignInputTable2[p], SignInputTable1[p-12], SignInputTable2[p-12])
 				}
 				s.phonemeindex[pos] = p - 12
 			} else if !(pf&FLAG_PLOSIVE != 0) {
@@ -598,7 +618,7 @@ func (s *Sam) Parser2() {
 					if p == 0 {
 						p = s.phonemeindex[pos+2]
 					}
-					if p != global.END && (flags[p]&FLAG_VOWEL != 0) && s.stress[pos+1] == 0 {
+					if p != render.PhonemeEnd && (flags[p]&FLAG_VOWEL != 0) && s.stress[pos+1] == 0 {
 						s.change(pos, 30, "Soften T or D following vowel or ER and preceding a pause -> DX")
 					}
 				}
@@ -630,7 +650,7 @@ func (s *Sam) AdjustLengths() {
 	var X byte = 0
 	var index byte
 	index = s.phonemeindex[X]
-	for s.phonemeindex[X] != global.END {
+	for s.phonemeindex[X] != render.PhonemeEnd {
 		index = s.phonemeindex[X]
 		// not punctuation?
 		if (flags[index] & FLAG_PUNCT) == 0 {
@@ -670,13 +690,13 @@ func (s *Sam) AdjustLengths() {
 	// Loop throught all phonemes
 	var loopIndex byte = 0
 	index = s.phonemeindex[loopIndex]
-	for s.phonemeindex[loopIndex] != global.END {
+	for s.phonemeindex[loopIndex] != render.PhonemeEnd {
 		index = s.phonemeindex[loopIndex]
 		X := loopIndex
 
 		if flags[index]&FLAG_VOWEL != 0 {
 			index = s.phonemeindex[loopIndex+1]
-			if index == global.END {
+			if index == render.PhonemeEnd {
 				break
 			}
 			if !(flags[index]&FLAG_CONSONANT != 0) {
@@ -690,7 +710,7 @@ func (s *Sam) AdjustLengths() {
 				}
 			} else { // Got here if not <VOWEL>
 				var flag = flags[index] // 65 if end marker
-				if index == global.END {
+				if index == render.PhonemeEnd {
 					flag = 65
 				}
 
@@ -717,7 +737,7 @@ func (s *Sam) AdjustLengths() {
 			//       Set stop consonant length to 5
 			X++
 			index = s.phonemeindex[X]
-			if index != global.END && (flags[index]&FLAG_STOPCONS != 0) {
+			if index != render.PhonemeEnd && (flags[index]&FLAG_STOPCONS != 0) {
 				s.drule("<NASAL> <STOP CONSONANT> - set nasal = 5, consonant = 6")
 				s.phonemeLength[X] = 6   // set stop consonant length to 6
 				s.phonemeLength[X-1] = 5 // set nasal length to 5
@@ -734,7 +754,7 @@ func (s *Sam) AdjustLengths() {
 				index = s.phonemeindex[X]
 			}
 
-			if index != global.END && (flags[index]&FLAG_STOPCONS != 0) {
+			if index != render.PhonemeEnd && (flags[index]&FLAG_STOPCONS != 0) {
 				// FIXME, this looks wrong?
 				// RULE: <UNVOICED STOP CONSONANT> {optional silence} <STOP CONSONANT>
 				s.drule("<UNVOICED STOP CONSONANT> {optional silence} <STOP CONSONANT> - shorten both to 1/2 + 1")

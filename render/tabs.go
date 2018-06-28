@@ -1,5 +1,14 @@
 package render
 
+const (
+	PhonemePeriod   = 1
+	PhonemeQuestion = 2
+	PhonemeEnd      = 255
+
+	inflectionRising  = 1
+	inflectionFalling = 255
+)
+
 var (
 	tab48426 = [5]byte{0x18, 0x1A, 0x17, 0x17, 0x17}
 

@@ -1,8 +1,9 @@
 package render
 
 import (
+	"fmt"
+
 	"github.com/exploser/sam/config"
-	"github.com/exploser/sam/global"
 )
 
 type Render struct {
@@ -20,6 +21,10 @@ type Render struct {
 	amplitude3           [256]byte
 	sampledConsonantFlag [256]byte // tab44800
 	oldtimetableindex    int
+
+	PhonemeIndexOutput  [60]byte //tab47296
+	PhonemeLengthOutput [60]byte
+	StressOutput        [60]byte
 }
 
 func (r *Render) GetBuffer() []byte {
@@ -186,24 +191,24 @@ func (r *Render) CreateFrames(cfg *config.Config) {
 	i := 0
 	for i < 256 {
 		// get the phoneme at the index
-		phoneme := global.PhonemeIndexOutput[i]
+		phoneme := r.PhonemeIndexOutput[i]
 
 		// if terminal phoneme, exit the loop
-		if phoneme == global.END {
+		if phoneme == PhonemeEnd {
 			break
 		}
 
-		if phoneme == global.PHONEME_PERIOD {
-			r.AddInflection(global.RISING_INFLECTION, phase1, X)
-		} else if phoneme == global.PHONEME_QUESTION {
-			r.AddInflection(global.FALLING_INFLECTION, phase1, X)
+		if phoneme == PhonemePeriod {
+			r.AddInflection(inflectionFalling, phase1, X)
+		} else if phoneme == PhonemeQuestion {
+			r.AddInflection(inflectionFalling, phase1, X)
 		}
 
 		// get the stress amount (more stress = higher pitch)
-		phase1 = tab47492[global.StressOutput[i]+1]
+		phase1 = tab47492[r.StressOutput[i]+1]
 
 		// get number of frames to write
-		phase2 := global.PhonemeLengthOutput[i]
+		phase2 := r.PhonemeLengthOutput[i]
 
 		// copy from the source to the frames list
 		for ok := true; ok; ok = (phase2 != 0) {
@@ -263,7 +268,7 @@ func (r *Render) AssignPitchContour() {
 //
 // 4. Render the each frame.
 func (r *Render) Render(cfg *config.Config) {
-	if global.PhonemeIndexOutput[0] == global.END {
+	if r.PhonemeIndexOutput[0] == PhonemeEnd {
 		return
 	} //exit if no data
 
@@ -276,7 +281,7 @@ func (r *Render) Render(cfg *config.Config) {
 	r.RescaleAmplitude()
 
 	if cfg.Debug {
-		global.PrintOutput(r.sampledConsonantFlag[:], r.frequency1[:], r.frequency2[:], r.frequency3[:], r.amplitude1[:], r.amplitude2[:], r.amplitude3[:], r.pitches[:])
+		PrintOutput(r.sampledConsonantFlag[:], r.frequency1[:], r.frequency2[:], r.frequency3[:], r.amplitude1[:], r.amplitude2[:], r.amplitude3[:], r.pitches[:])
 	}
 
 	r.ProcessFrames(t, cfg)
@@ -381,4 +386,18 @@ func SetMouthThroat(mouth, throat byte) {
 		freq2data[pos+48] = newFrequency
 		pos++
 	}
+}
+
+func PrintOutput(flag, f1, f2, f3, a1, a2, a3, p []byte) {
+	fmt.Printf("===========================================\n")
+	fmt.Printf("Final data for speech output:\n\n")
+	i := 0
+	fmt.Printf(" flags ampl1 freq1 ampl2 freq2 ampl3 freq3 pitch\n")
+	fmt.Printf("------------------------------------------------\n")
+	for i < 255 {
+		fmt.Printf("%5d %5d %5d %5d %5d %5d %5d %5d\n", flag[i], a1[i], f1[i], a2[i], f2[i], a3[i], f3[i], p[i])
+		i++
+	}
+	fmt.Printf("===========================================\n")
+
 }

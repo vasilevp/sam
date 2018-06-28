@@ -153,7 +153,9 @@ func main() {
 	if !phonetic {
 		data[i] = '['
 
-		if reciter.TextToPhonemes(data[:], cfg) == 0 {
+		rec := reciter.Reciter{}
+
+		if !rec.TextToPhonemes(data[:], cfg) {
 			os.Exit(1)
 		}
 		if cfg.Debug {

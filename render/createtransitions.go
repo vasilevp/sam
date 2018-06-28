@@ -2,8 +2,6 @@ package render
 
 import (
 	"fmt"
-
-	"github.com/exploser/sam/global"
 )
 
 // CREATE TRANSITIONS
@@ -139,8 +137,8 @@ func (r *Render) interpolate_pitch(width, pos, mem49, phase3 byte) {
 	// next phoneme
 
 	// half the width of the current and next phoneme
-	cur_width := global.PhonemeLengthOutput[pos] / 2
-	next_width := global.PhonemeLengthOutput[pos+1] / 2
+	cur_width := r.PhonemeLengthOutput[pos] / 2
+	next_width := r.PhonemeLengthOutput[pos+1] / 2
 	// sum the values
 	width = cur_width + next_width
 	pitch := r.pitches[next_width+mem49] - r.pitches[mem49-cur_width]
@@ -150,10 +148,10 @@ func (r *Render) interpolate_pitch(width, pos, mem49, phase3 byte) {
 func (r *Render) CreateTransitions() byte {
 	var phase1, phase2, mem49, pos byte
 	for {
-		phoneme := global.PhonemeIndexOutput[pos]
-		next_phoneme := global.PhonemeIndexOutput[pos+1]
+		phoneme := r.PhonemeIndexOutput[pos]
+		next_phoneme := r.PhonemeIndexOutput[pos+1]
 
-		if next_phoneme == global.END {
+		if next_phoneme == PhonemeEnd {
 			break
 		} // 255 == end_token
 
@@ -177,7 +175,7 @@ func (r *Render) CreateTransitions() byte {
 			phase2 = inBlendLength[phoneme]
 		}
 
-		mem49 += global.PhonemeLengthOutput[pos]
+		mem49 += r.PhonemeLengthOutput[pos]
 
 		speedcounter := mem49 + phase2
 		phase3 := mem49 - phase1
@@ -206,5 +204,5 @@ func (r *Render) CreateTransitions() byte {
 	}
 
 	// add the length of this phoneme
-	return mem49 + global.PhonemeLengthOutput[pos]
+	return mem49 + r.PhonemeLengthOutput[pos]
 }
