@@ -6,12 +6,14 @@ Software Automatic Mouth - Tiny Speech Synthesizer
 This is a Go port of the great SAM speech synthesizer. It's basically a semi-automatic rewrite from C to Go of what was, in turn, a semi-automatic rewrite from Assembly to C :). Consequently, this is not meant to be readable.
 
 
-Original repo: https://github.com/vidarh/SAM. Based on [this commit](https://github.com/vidarh/SAM/commit/8a8219e2cfef5f4ec5db2af55470e8d402937fea)
+Original repo: https://github.com/vidarh/SAM. Based on [this commit](https://github.com/vidarh/SAM/commit/8a8219e2cfef5f4ec5db2af55470e8d402937fea).
 
 Why port this to go?
 --------------------
 
-Because why not.
+As a challenge and just for fun.
+
+-----------------------------
 
 Original README
 ===============
