@@ -2,8 +2,6 @@ package render
 
 import (
 	"fmt"
-
-	"github.com/exploser/sam/global"
 )
 
 // CREATE TRANSITIONS
@@ -49,50 +47,50 @@ import (
 // 172=amplitude1
 // 173=amplitude2
 // 174=amplitude3
-func Read(p, Y byte) byte {
+func (r *Render) Read(p, Y byte) byte {
 	switch p {
 	case 168:
-		return pitches[Y]
+		return r.pitches[Y]
 	case 169:
-		return frequency1[Y]
+		return r.frequency1[Y]
 	case 170:
-		return frequency2[Y]
+		return r.frequency2[Y]
 	case 171:
-		return frequency3[Y]
+		return r.frequency3[Y]
 	case 172:
-		return amplitude1[Y]
+		return r.amplitude1[Y]
 	case 173:
-		return amplitude2[Y]
+		return r.amplitude2[Y]
 	case 174:
-		return amplitude3[Y]
+		return r.amplitude3[Y]
 	}
 	fmt.Printf("Error reading to tables")
 	return 0
 }
 
-func Write(p, Y, value byte) {
+func (r *Render) Write(p, Y, value byte) {
 
 	switch p {
 	case 168:
-		pitches[Y] = value
+		r.pitches[Y] = value
 		return
 	case 169:
-		frequency1[Y] = value
+		r.frequency1[Y] = value
 		return
 	case 170:
-		frequency2[Y] = value
+		r.frequency2[Y] = value
 		return
 	case 171:
-		frequency3[Y] = value
+		r.frequency3[Y] = value
 		return
 	case 172:
-		amplitude1[Y] = value
+		r.amplitude1[Y] = value
 		return
 	case 173:
-		amplitude2[Y] = value
+		r.amplitude2[Y] = value
 		return
 	case 174:
-		amplitude3[Y] = value
+		r.amplitude3[Y] = value
 		return
 	}
 	fmt.Printf("Error writing to tables\n")
@@ -106,14 +104,14 @@ func abs(x int8) int8 {
 }
 
 // linearly interpolate values
-func interpolate(width, table, frame, mem53 byte) {
+func (r *Render) interpolate(width, table, frame, mem53 byte) {
 	sign := (int8(mem53) < 0)
 	remainder := byte(int(abs(int8(mem53))) % int(width))
 	div := byte(int(int8(mem53)) / int(width))
 
-	var intError byte = 0
+	var intError byte
 	var pos = width
-	var val = Read(table, frame) + div
+	var val = r.Read(table, frame) + div
 
 	pos--
 	for pos > 0 {
@@ -127,33 +125,33 @@ func interpolate(width, table, frame, mem53 byte) {
 			} // if input is 0, we always leave it alone
 		}
 		frame++
-		Write(table, frame, val) // Write updated value back to next frame.
+		r.Write(table, frame, val) // Write updated value back to next frame.
 		val += div
 		pos--
 	}
 }
 
-func interpolate_pitch(width, pos, mem49, phase3 byte) {
+func (r *Render) interpolate_pitch(width, pos, mem49, phase3 byte) {
 	// unlike the other values, the pitches[] interpolates from
 	// the middle of the current phoneme to the middle of the
 	// next phoneme
 
 	// half the width of the current and next phoneme
-	cur_width := global.PhonemeLengthOutput[pos] / 2
-	next_width := global.PhonemeLengthOutput[pos+1] / 2
+	cur_width := r.PhonemeLengthOutput[pos] / 2
+	next_width := r.PhonemeLengthOutput[pos+1] / 2
 	// sum the values
 	width = cur_width + next_width
-	pitch := pitches[next_width+mem49] - pitches[mem49-cur_width]
-	interpolate(width, 168, phase3, pitch)
+	pitch := r.pitches[next_width+mem49] - r.pitches[mem49-cur_width]
+	r.interpolate(width, 168, phase3, pitch)
 }
 
-func CreateTransitions() byte {
+func (r *Render) CreateTransitions() byte {
 	var phase1, phase2, mem49, pos byte
 	for {
-		phoneme := global.PhonemeIndexOutput[pos]
-		next_phoneme := global.PhonemeIndexOutput[pos+1]
+		phoneme := r.PhonemeIndexOutput[pos]
+		next_phoneme := r.PhonemeIndexOutput[pos+1]
 
-		if next_phoneme == 255 {
+		if next_phoneme == PhonemeEnd {
 			break
 		} // 255 == end_token
 
@@ -177,7 +175,7 @@ func CreateTransitions() byte {
 			phase2 = inBlendLength[phoneme]
 		}
 
-		mem49 += global.PhonemeLengthOutput[pos]
+		mem49 += r.PhonemeLengthOutput[pos]
 
 		speedcounter := mem49 + phase2
 		phase3 := mem49 - phase1
@@ -185,7 +183,7 @@ func CreateTransitions() byte {
 
 		if ((transition - 2) & 128) == 0 {
 
-			interpolate_pitch(transition, pos, mem49, phase3)
+			r.interpolate_pitch(transition, pos, mem49, phase3)
 			var table byte = 169
 			for table < 175 {
 				// tables:
@@ -197,8 +195,8 @@ func CreateTransitions() byte {
 				// 173  amplitude2
 				// 174  amplitude3
 
-				value := Read(table, speedcounter) - Read(table, phase3)
-				interpolate(transition, table, phase3, value)
+				value := r.Read(table, speedcounter) - r.Read(table, phase3)
+				r.interpolate(transition, table, phase3, value)
 				table++
 			}
 		}
@@ -206,5 +204,5 @@ func CreateTransitions() byte {
 	}
 
 	// add the length of this phoneme
-	return mem49 + global.PhonemeLengthOutput[pos]
+	return mem49 + r.PhonemeLengthOutput[pos]
 }

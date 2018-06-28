@@ -1,95 +1,14 @@
 package reciter
 
 import (
-	"github.com/exploser/sam/global"
+	"github.com/exploser/sam/config"
 )
 
-var A, X, Y byte
-
-var inputtemp [256]byte // secure copy of input global.Tab36096
-
-/* Retrieve flags for character at mem59-1 */
-func Code37055(npos, mask byte) byte {
-	X = npos
-	return global.Tab36376[inputtemp[X]] & mask
+type Reciter struct {
+	inputtemp [256]byte
 }
 
-func match(str string) int {
-	for i := 0; i < len(str); i++ {
-		ch := str[i]
-		A = inputtemp[X]
-		X++
-		if A != ch {
-			return 0
-		}
-	}
-	return 1
-}
-
-func handle_ch2(ch, mem byte) int {
-	X = mem
-	tmp := global.Tab36376[inputtemp[mem]]
-	if ch == ' ' {
-		if tmp&128 != 0 {
-			return 1
-		}
-	} else if ch == '#' {
-		if !(tmp&64 != 0) {
-			return 1
-		}
-	} else if ch == '.' {
-		if !(tmp&8 != 0) {
-			return 1
-		}
-	} else if ch == '^' {
-		if !(tmp&32 != 0) {
-			return 1
-		}
-	} else {
-		return -1
-	}
-	return 0
-}
-
-func handle_ch(A, mem byte) int {
-	X = mem
-	tmp := global.Tab36376[inputtemp[X]]
-	if A == ' ' {
-		if (tmp & 128) != 0 {
-			return 1
-		}
-	} else if A == '#' {
-		if (tmp & 64) == 0 {
-			return 1
-		}
-	} else if A == '.' {
-		if (tmp & 8) == 0 {
-			return 1
-		}
-	} else if A == '&' {
-		if (tmp & 16) == 0 {
-			if inputtemp[X] != 72 {
-				return 1
-			}
-			X++
-		}
-	} else if A == '^' {
-		if (tmp & 32) == 0 {
-			return 1
-		}
-	} else if A == '+' {
-		X = mem
-		A = inputtemp[X]
-		if (A != 69) && (A != 73) && (A != 89) {
-			return 1
-		}
-	} else {
-		return -1
-	}
-	return 0
-}
-
-func TextToPhonemes(input []byte) int {
+func (rec *Reciter) TextToPhonemes(input []byte, cfg *config.Config) bool {
 	var mem56, //output position for phonemes
 		mem58,
 		mem60,
@@ -100,7 +19,7 @@ func TextToPhonemes(input []byte) int {
 		mem66 byte // position of '('
 	var mem62 uint16 // memory position of current rule
 
-	inputtemp[0] = ' '
+	rec.inputtemp[0] = ' '
 
 	// secure copy of input
 	// because input will be overwritten by phonemes
@@ -113,9 +32,9 @@ func TextToPhonemes(input []byte) int {
 			A = A & 79
 		}
 		X++
-		inputtemp[X] = A
+		rec.inputtemp[X] = A
 	}
-	inputtemp[255] = 27
+	rec.inputtemp[255] = 27
 	mem56 = 255
 	mem61 = 255
 
@@ -125,19 +44,19 @@ pos36554:
 		for {
 			mem61++
 			X = mem61
-			mem64 = inputtemp[X]
+			mem64 = rec.inputtemp[X]
 			if mem64 == '[' {
 				mem56++
 				X = mem56
 				input[X] = 155
-				return 1
+				return true
 			}
 
 			if mem64 != '.' {
 				break
 			}
 			X++
-			A = global.Tab36376[inputtemp[X]] & 1
+			A = flags36376[rec.inputtemp[X]] & 1
 			if A != 0 {
 				break
 			}
@@ -146,7 +65,7 @@ pos36554:
 			A = '.'
 			input[X] = '.'
 		}
-		mem57 = global.Tab36376[mem64]
+		mem57 = flags36376[mem64]
 		if (mem57 & 2) != 0 {
 			mem62 = 37541
 			goto pos36700
@@ -155,44 +74,44 @@ pos36554:
 		if mem57 != 0 {
 			break
 		}
-		inputtemp[X] = ' '
+		rec.inputtemp[X] = ' '
 		mem56++
 		X = mem56
 		if X > 120 {
 			input[X] = 155
-			return 1
+			return true
 		}
 		input[X] = 32
 	}
 
 	if !(mem57&128 != 0) {
-		return 0
+		return false
 	}
 
 	// go to the right rules for this character.
 	X = mem64 - 'A'
-	mem62 = uint16(global.Tab37489[X]) | uint16(global.Tab37515[X])<<8
+	mem62 = uint16(Tab37489[X]) | uint16(Tab37515[X])<<8
 	// fmt.Println(mem62)
 
 pos36700:
 	mem62++
 	// find next rule
-	for (global.GetRuleByte(mem62, 0) & 128) == 0 {
+	for (getRuleByte(mem62, 0) & 128) == 0 {
 		mem62++
 	}
 	var Y byte
 	Y++
-	for global.GetRuleByte(mem62, Y) != '(' {
+	for getRuleByte(mem62, Y) != '(' {
 		Y++
 	}
 	mem66 = Y
 	Y++
-	for global.GetRuleByte(mem62, Y) != ')' {
+	for getRuleByte(mem62, Y) != ')' {
 		Y++
 	}
 	mem65 = Y
 	Y++
-	for (global.GetRuleByte(mem62, Y) & 127) != '=' {
+	for (getRuleByte(mem62, Y) & 127) != '=' {
 		Y++
 	}
 	mem64 = Y
@@ -203,7 +122,7 @@ pos36700:
 	Y = mem66 + 1
 
 	for {
-		if global.GetRuleByte(mem62, Y) != inputtemp[X] {
+		if getRuleByte(mem62, Y) != rec.inputtemp[X] {
 			goto pos36700
 		}
 		Y++
@@ -221,16 +140,16 @@ pos36700:
 	for {
 		for {
 			mem66--
-			mem57 = global.GetRuleByte(mem62, mem66)
+			mem57 = getRuleByte(mem62, mem66)
 			if (mem57 & 128) != 0 {
 				mem58 = mem60
 				goto pos37184
 			}
 			X = mem57 & 127
-			if (global.Tab36376[X] & 128) == 0 {
+			if (flags36376[X] & 128) == 0 {
 				break
 			}
-			if inputtemp[mem59-1] != mem57 {
+			if rec.inputtemp[mem59-1] != mem57 {
 				goto pos36700
 			}
 			mem59--
@@ -238,16 +157,16 @@ pos36700:
 
 		ch := mem57
 
-		r := handle_ch2(ch, mem59-1)
+		r := rec.handle_ch2(ch, mem59-1)
 		if r == -1 {
 			switch ch {
 			case '&':
-				if Code37055(mem59-1, 16) == 0 {
-					if inputtemp[X] != 'H' {
+				if rec.getFlag(mem59-1, 16) == 0 {
+					if rec.inputtemp[X] != 'H' {
 						r = 1
 					} else {
 						X--
-						A = inputtemp[X]
+						A = rec.inputtemp[X]
 						if (A != 'C') && (A != 'S') {
 							r = 1
 						}
@@ -256,8 +175,8 @@ pos36700:
 				break
 
 			case '@':
-				if Code37055(mem59-1, 4) == 0 {
-					A = inputtemp[X]
+				if rec.getFlag(mem59-1, 4) == 0 {
+					A = rec.inputtemp[X]
 					if A != 72 {
 						r = 1
 					}
@@ -269,18 +188,18 @@ pos36700:
 			case '+':
 				X = mem59
 				X--
-				A = inputtemp[X]
+				A = rec.inputtemp[X]
 				if (A != 'E') && (A != 'I') && (A != 0) {
 					r = 1
 				}
 				break
 			case ':':
-				for Code37055(mem59-1, 32) != 0 {
+				for rec.getFlag(mem59-1, 32) != 0 {
 					mem59--
 				}
 				continue
 			default:
-				return 0
+				return false
 			}
 		}
 
@@ -294,21 +213,21 @@ doWhileAEqualsPercent:
 	// do ... while(A=='%')
 	// for ok := true; ok; ok = (A == '%') {
 	X = mem58 + 1
-	if inputtemp[X] == 'E' {
-		if (global.Tab36376[inputtemp[X+1]] & 128) != 0 {
+	if rec.inputtemp[X] == 'E' {
+		if (flags36376[rec.inputtemp[X+1]] & 128) != 0 {
 			X++
-			A = inputtemp[X]
+			A = rec.inputtemp[X]
 			if A == 'L' {
 				X++
-				if inputtemp[X] != 'Y' {
+				if rec.inputtemp[X] != 'Y' {
 					goto pos36700
 				}
-			} else if (A != 'R') && (A != 'S') && (A != 'D') && match("FUL") == 0 {
+			} else if (A != 'R') && (A != 'S') && (A != 'D') && rec.match("FUL") == 0 {
 				goto pos36700
 			}
 		}
 	} else {
-		if match("ING") == 0 {
+		if rec.match("ING") == 0 {
 			goto pos36700
 		}
 		mem58 = X
@@ -324,12 +243,12 @@ pos37184:
 			if Y == mem64 {
 				mem61 = mem60
 
-				if global.Debug {
-					global.PrintRule(int(mem62))
+				if cfg.Debug {
+					printRule(int(mem62))
 				}
 
 				for {
-					A = global.GetRuleByte(mem62, Y)
+					A = getRuleByte(mem62, Y)
 					mem57 = A
 					A = A & 127
 					if A != '=' {
@@ -343,11 +262,11 @@ pos37184:
 				}
 			}
 			mem65 = Y
-			mem57 = global.GetRuleByte(mem62, Y)
-			if (global.Tab36376[mem57] & 128) == 0 {
+			mem57 = getRuleByte(mem62, Y)
+			if (flags36376[mem57] & 128) == 0 {
 				break
 			}
-			if inputtemp[mem58+1] != mem57 {
+			if rec.inputtemp[mem58+1] != mem57 {
 				r = 1
 				break
 			}
@@ -357,8 +276,8 @@ pos37184:
 		if r == 0 {
 			A = mem57
 			if A == '@' {
-				if Code37055(mem58+1, 4) == 0 {
-					A = inputtemp[X]
+				if rec.getFlag(mem58+1, 4) == 0 {
+					A = rec.inputtemp[X]
 					if (A != 82) && (A != 84) &&
 						(A != 67) && (A != 83) {
 						r = 1
@@ -367,12 +286,12 @@ pos37184:
 					r = -2
 				}
 			} else if A == ':' {
-				for Code37055(mem58+1, 32) != 0 {
+				for rec.getFlag(mem58+1, 32) != 0 {
 					mem58 = X
 				}
 				r = -2
 			} else {
-				r = handle_ch(A, mem58+1)
+				r = rec.handle_ch(A, mem58+1)
 			}
 		}
 
@@ -391,5 +310,5 @@ pos37184:
 	if A == '%' {
 		goto doWhileAEqualsPercent
 	}
-	return 0
+	return false
 }
