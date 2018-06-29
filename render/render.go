@@ -51,13 +51,28 @@ var timetable = [5][5]int{
 	{199, 0, 0, 54, 54},
 }
 
-func (r *Render) Output(index int, A byte) {
+func (r *Render) Output8Bit(index int, A byte) {
 	var k int
 	r.Bufferpos += timetable[r.oldtimetableindex][index]
 	r.oldtimetableindex = index
 	// write a little bit in advance
 	for k = 0; k < 5; k++ {
-		r.Buffer[r.Bufferpos/50+k] = (A & 15) * 16
+		r.Buffer[r.Bufferpos/50+k] = A
+	}
+}
+
+func (r *Render) Output8BitArray(index int, A [5]byte) {
+	var k int
+	r.Bufferpos += timetable[r.oldtimetableindex][index]
+	r.oldtimetableindex = index
+
+	if len(A) != 5 {
+		panic("A should contain exactly 5 elements")
+	}
+
+	// write a little bit in advance
+	for k = 0; k < 5; k++ {
+		r.Buffer[r.Bufferpos/50+k] = A[k]
 	}
 }
 
@@ -67,9 +82,9 @@ func (r *Render) RenderVoicedSample(hi uint, off, phase1 byte) byte {
 		var bit byte = 8
 		for ok := true; ok; ok = (bit != 0) {
 			if (sample & 128) != 0 {
-				r.Output(3, 10)
+				r.Output8Bit(3, 10*16)
 			} else {
-				r.Output(4, 6)
+				r.Output8Bit(4, 6*16)
 			}
 			sample <<= 1
 			bit--
@@ -86,9 +101,9 @@ func (r *Render) RenderUnvoicedSample(hi uint, off, X byte) {
 		sample := sampleTable[hi+uint(off)]
 		for ok := true; ok; ok = (bit != 0) {
 			if (sample & 128) != 0 {
-				r.Output(2, 5)
+				r.Output8Bit(2, 5*16)
 			} else {
-				r.Output(1, X)
+				r.Output8Bit(1, X) // TODO: check for 0xf
 			}
 			sample <<= 1
 			bit--

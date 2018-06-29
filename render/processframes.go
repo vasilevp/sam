@@ -5,24 +5,31 @@ import (
 )
 
 func (r *Render) CombineGlottalAndFormants(phase1, phase2, phase3, Y byte) {
-	sp1 := int8(sinus[phase1])
-	sp2 := int8(sinus[phase2])
-	rp3 := int8(rectangle[phase3])
+	var array [5]byte
+	p1 := int(phase1) * 256
+	p2 := int(phase2) * 256
+	p3 := int(phase3) * 256
 
-	sin1 := int(sp1) * int(r.amplitude1[Y]&0x0f)
-	sin2 := int(sp2) * int(r.amplitude2[Y]&0x0f)
-	rect := int(rp3) * int(r.amplitude3[Y]&0x0f)
+	for i := 0; i < 5; i++ {
+		sp1 := sinus[(p1/256)&0xff]
+		sp2 := sinus[(p2/256)&0xff]
+		rp3 := rectangle[(p3/256)&0xff]
 
-	mux := sin1 + sin2 + rect
+		sin1 := int(sp1) * int(r.amplitude1[Y]&0x0f)
+		sin2 := int(sp2) * int(r.amplitude2[Y]&0x0f)
+		rect := int(rp3) * int(r.amplitude3[Y]&0x0f)
 
-	mux /= 32
-	mux += 128
+		mux := int(sin1) + int(sin2) + int(rect)
 
-	A := byte((mux >> 4) & 0x0f)
+		mux /= 32
+		mux += 128
+		array[i] = byte(mux)
+		p1 += int(r.frequency1[Y]) * 256 / 4
+		p2 += int(r.frequency2[Y]) * 256 / 4
+		p3 += int(r.frequency3[Y]) * 256 / 4
+	}
 
-	// for i := 0; i < 5; i++ {
-	r.Output(0, A)
-	// }
+	r.Output8BitArray(0, array)
 }
 
 // PROCESS THE FRAMES
