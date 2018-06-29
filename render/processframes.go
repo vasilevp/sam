@@ -5,19 +5,24 @@ import (
 )
 
 func (r *Render) CombineGlottalAndFormants(phase1, phase2, phase3, Y byte) {
-	var tmp uint
+	sp1 := int8(sinus[phase1])
+	sp2 := int8(sinus[phase2])
+	rp3 := int8(rectangle[phase3])
 
-	tmp = uint(multtable[sinus[phase1]|r.amplitude1[Y]])
-	tmp += uint(multtable[sinus[phase2]|r.amplitude2[Y]])
-	// tmp  += tmp > 255 ? 1 : 0; // if addition above overflows, we for some reason add one;
-	if tmp > 255 {
-		tmp++
-	}
-	tmp += uint(multtable[rectangle[phase3]|r.amplitude3[Y]])
-	tmp += 136
-	tmp >>= 4 // Scale down to 0..15 range of C64 audio.
+	sin1 := int(sp1) * int(r.amplitude1[Y]&0x0f)
+	sin2 := int(sp2) * int(r.amplitude2[Y]&0x0f)
+	rect := int(rp3) * int(r.amplitude3[Y]&0x0f)
 
-	r.Output(0, byte(tmp&0xf))
+	mux := sin1 + sin2 + rect
+
+	mux /= 32
+	mux += 128
+
+	A := byte((mux >> 4) & 0x0f)
+
+	// for i := 0; i < 5; i++ {
+	r.Output(0, A)
+	// }
 }
 
 // PROCESS THE FRAMES

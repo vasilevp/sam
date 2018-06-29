@@ -67,7 +67,7 @@ func (r *Render) RenderVoicedSample(hi uint, off, phase1 byte) byte {
 		var bit byte = 8
 		for ok := true; ok; ok = (bit != 0) {
 			if (sample & 128) != 0 {
-				r.Output(3, 26)
+				r.Output(3, 10)
 			} else {
 				r.Output(4, 6)
 			}
@@ -80,7 +80,7 @@ func (r *Render) RenderVoicedSample(hi uint, off, phase1 byte) byte {
 	return off
 }
 
-func (r *Render) RenderUnvoicedSample(hi uint, off, mem53 byte) {
+func (r *Render) RenderUnvoicedSample(hi uint, off, X byte) {
 	for ok := true; ok; ok = (off != 0) {
 		var bit byte = 8
 		sample := sampleTable[hi+uint(off)]
@@ -88,7 +88,7 @@ func (r *Render) RenderUnvoicedSample(hi uint, off, mem53 byte) {
 			if (sample & 128) != 0 {
 				r.Output(2, 5)
 			} else {
-				r.Output(1, mem53)
+				r.Output(1, X)
 			}
 			sample <<= 1
 			bit--
