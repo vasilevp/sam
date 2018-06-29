@@ -771,10 +771,9 @@ func (s *Sam) AdjustLengths() {
 			// prior phoneme a stop consonant>
 			if (flags[index] & FLAG_STOPCONS) != 0 {
 				s.drule_pre("<LIQUID CONSONANT> <DIPTHONG> - decrease by 2", X)
+				s.phonemeLength[X] -= 2 // 20ms
+				s.drule_post(X)
 			}
-
-			s.phonemeLength[X] -= 2 // 20ms
-			s.drule_post(X)
 		}
 
 		loopIndex++
