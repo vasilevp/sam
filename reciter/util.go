@@ -103,12 +103,10 @@ func (r *Reciter) handle_ch(A, mem byte) int {
 
 func getRuleByte(mem62 uint16, Y byte) byte {
 	var address uint = uint(mem62)
-	// fmt.Println(address, uint16(Y))
 	if mem62 >= 37541 {
 		address -= 37541
 		return Rules2[address+uint(Y)]
 	}
 	address -= 32000
-	// fmt.Println(address, uint(Y))
 	return Rules[address+uint(Y)]
 }

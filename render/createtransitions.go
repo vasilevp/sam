@@ -105,8 +105,8 @@ func abs(x int8) int8 {
 
 // linearly interpolate values
 func (r *Render) interpolate(width, table, frame, mem53 byte) {
-	sign := (int8(mem53) < 0)
-	remainder := byte(int(abs(int8(mem53))) % int(width))
+	sign := int8(mem53) < 0
+	remainder := byte(abs(int8(mem53))) % width
 	div := byte(int(int8(mem53)) / int(width))
 
 	var intError byte
@@ -141,8 +141,8 @@ func (r *Render) interpolate_pitch(width, pos, mem49, phase3 byte) {
 	next_width := r.PhonemeLengthOutput[pos+1] / 2
 	// sum the values
 	width = cur_width + next_width
-	pitch := r.pitches[next_width+mem49] - r.pitches[mem49-cur_width]
-	r.interpolate(width, 168, phase3, pitch)
+	pitch := int(r.pitches[next_width+mem49]) - int(r.pitches[mem49-cur_width])
+	r.interpolate(width, 168, phase3, byte(pitch))
 }
 
 func (r *Render) CreateTransitions() byte {
@@ -184,8 +184,7 @@ func (r *Render) CreateTransitions() byte {
 		if ((transition - 2) & 128) == 0 {
 
 			r.interpolate_pitch(transition, pos, mem49, phase3)
-			var table byte = 169
-			for table < 175 {
+			for table := byte(169); table < 175; table++ {
 				// tables:
 				// 168  pitches[]
 				// 169  frequency1
@@ -197,7 +196,6 @@ func (r *Render) CreateTransitions() byte {
 
 				value := r.Read(table, speedcounter) - r.Read(table, phase3)
 				r.interpolate(transition, table, phase3, value)
-				table++
 			}
 		}
 		pos++

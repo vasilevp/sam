@@ -120,12 +120,14 @@ func outputSpeech(r *render.Render, destination string) {
 			os.Exit(6)
 		}
 
-		speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/20))
+		speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
 		done := make(chan int)
 		speaker.Play(beep.Seq(s, beep.Callback(func() {
 			done <- 0
 		})))
 		<-done
+		// sleep for 0.25 to allow audio output to finish
+		time.Sleep(time.Second / 2)
 	}
 }
 

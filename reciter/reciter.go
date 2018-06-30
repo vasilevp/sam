@@ -91,7 +91,6 @@ pos36554:
 	// go to the right rules for this character.
 	X = mem64 - 'A'
 	mem62 = uint16(Tab37489[X]) | uint16(Tab37515[X])<<8
-	// fmt.Println(mem62)
 
 pos36700:
 	mem62++

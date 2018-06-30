@@ -22,9 +22,9 @@ type Render struct {
 	sampledConsonantFlag [256]byte // tab44800
 	oldtimetableindex    int
 
-	PhonemeIndexOutput  [60]byte //tab47296
-	PhonemeLengthOutput [60]byte
-	StressOutput        [60]byte
+	PhonemeIndexOutput  [256]byte //tab47296
+	PhonemeLengthOutput [256]byte
+	StressOutput        [256]byte
 }
 
 func (r *Render) GetBuffer() []byte {
@@ -57,7 +57,8 @@ func (r *Render) Output8Bit(index int, A byte) {
 	r.oldtimetableindex = index
 	// write a little bit in advance
 	for k = 0; k < 5; k++ {
-		r.Buffer[r.Bufferpos/50+k] = A
+		i := r.Bufferpos/50 + k
+		r.Buffer[i] = A
 	}
 }
 
@@ -82,9 +83,9 @@ func (r *Render) RenderVoicedSample(hi uint, off, phase1 byte) byte {
 		var bit byte = 8
 		for ok := true; ok; ok = (bit != 0) {
 			if (sample & 128) != 0 {
-				r.Output8Bit(3, 10*16)
+				r.Output8Bit(3, 0x70)
 			} else {
-				r.Output8Bit(4, 6*16)
+				r.Output8Bit(4, 0x90)
 			}
 			sample <<= 1
 			bit--
@@ -103,7 +104,7 @@ func (r *Render) RenderUnvoicedSample(hi uint, off, X byte) {
 			if (sample & 128) != 0 {
 				r.Output8Bit(2, 5*16)
 			} else {
-				r.Output8Bit(1, X) // TODO: check for 0xf
+				r.Output8Bit(1, X*16) // TODO: check for 0xf
 			}
 			sample <<= 1
 			bit--
@@ -238,7 +239,6 @@ func (r *Render) CreateFrames(cfg *config.Config) {
 			X++
 			phase2--
 		}
-
 		i++
 	}
 }
@@ -322,7 +322,13 @@ func (r *Render) AddInflection(inflection, phase1, pos byte) {
 	for r.pitches[pos] == 127 {
 		pos++
 	}
-	A = r.pitches[pos-1]
+
+	// pos-1 can become 255 and cause weird shit to happen
+	if pos == 0 {
+		A = r.pitches[pos]
+	} else {
+		A = r.pitches[pos-1]
+	}
 
 	for pos != end {
 		// add the inflection direction
