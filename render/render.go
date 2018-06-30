@@ -56,10 +56,11 @@ func (r *Render) Output8Bit(index int, A byte) {
 	r.Bufferpos += timetable[r.oldtimetableindex][index]
 	r.oldtimetableindex = index
 	// write a little bit in advance
-	for k = 0; k < 5; k++ {
-		i := r.Bufferpos/50 + k
-		r.Buffer[i] = A
+	r.Buffer[r.Bufferpos/50+k] = A
+	for k = 1; k < 4; k++ {
+		r.Buffer[r.Bufferpos/50+k] = A
 	}
+	r.Buffer[r.Bufferpos/50+4] = A
 }
 
 func (r *Render) Output8BitArray(index int, A [5]byte) {
@@ -78,38 +79,34 @@ func (r *Render) Output8BitArray(index int, A [5]byte) {
 }
 
 func (r *Render) RenderVoicedSample(hi uint, off, phase1 byte) byte {
-	for ok := true; ok; ok = (phase1 != 0) {
+	for ; phase1 != 0; phase1++ {
 		sample := sampleTable[hi+uint(off)]
-		var bit byte = 8
-		for ok := true; ok; ok = (bit != 0) {
+
+		for bit := 8; bit != 0; bit-- {
 			if (sample & 128) != 0 {
 				r.Output8Bit(3, 0x70)
 			} else {
 				r.Output8Bit(4, 0x90)
 			}
 			sample <<= 1
-			bit--
 		}
 		off++
-		phase1++
 	}
 	return off
 }
 
-func (r *Render) RenderUnvoicedSample(hi uint, off, X byte) {
-	for ok := true; ok; ok = (off != 0) {
-		var bit byte = 8
+func (r *Render) RenderUnvoicedSample(hi uint, off byte) {
+	for ; off != 0; off++ {
 		sample := sampleTable[hi+uint(off)]
-		for ok := true; ok; ok = (bit != 0) {
+
+		for bit := 8; bit != 0; bit-- {
 			if (sample & 128) != 0 {
-				r.Output8Bit(2, 5*16)
+				r.Output8Bit(3, 0x60)
 			} else {
-				r.Output8Bit(1, X*16) // TODO: check for 0xf
+				r.Output8Bit(4, 0xA0)
 			}
 			sample <<= 1
-			bit--
 		}
-		off++
 	}
 }
 
@@ -190,7 +187,7 @@ func (r *Render) RenderSample(mem66 *byte, consonantFlag, mem49 byte) {
 		*mem66 = r.RenderVoicedSample(hi, *mem66, pitch^255)
 		return
 	}
-	r.RenderUnvoicedSample(hi, pitch^255, tab48426[hibyte])
+	r.RenderUnvoicedSample(hi, pitch^255)
 }
 
 // CREATE FRAMES
@@ -215,19 +212,18 @@ func (r *Render) CreateFrames(cfg *config.Config) {
 		}
 
 		if phoneme == PhonemePeriod {
-			r.AddInflection(inflectionRising, phase1, X)
-		} else if phoneme == PhonemeQuestion {
 			r.AddInflection(inflectionFalling, phase1, X)
+		} else if phoneme == PhonemeQuestion {
+			r.AddInflection(inflectionRising, phase1, X)
 		}
 
 		// get the stress amount (more stress = higher pitch)
 		phase1 = tab47492[r.StressOutput[i]+1]
 
 		// get number of frames to write
-		phase2 := r.PhonemeLengthOutput[i]
 
 		// copy from the source to the frames list
-		for ok := true; ok; ok = (phase2 != 0) {
+		for phase2 := r.PhonemeLengthOutput[i]; phase2 != 0; phase2-- {
 			r.frequency1[X] = freq1data[phoneme]                       // F1 frequency
 			r.frequency2[X] = freq2data[phoneme]                       // F2 frequency
 			r.frequency3[X] = freq3data[phoneme]                       // F3 frequency
@@ -237,7 +233,6 @@ func (r *Render) CreateFrames(cfg *config.Config) {
 			r.sampledConsonantFlag[X] = sampledConsonantFlags[phoneme] // phoneme data for sampled consonants
 			r.pitches[X] = cfg.Pitch + phase1                          // pitch
 			X++
-			phase2--
 		}
 		i++
 	}

@@ -5,13 +5,11 @@ const (
 	PhonemeQuestion = 2
 	PhonemeEnd      = 255
 
-	inflectionRising  = 1
-	inflectionFalling = 255
+	inflectionFalling = 1
+	inflectionRising  = 255
 )
 
 var (
-	tab48426 = [5]byte{0x18, 0x1A, 0x17, 0x17, 0x17}
-
 	tab47492 = [11]byte{
 		0, 0, 0xE0, 0xE6, 0xEC, 0xF3, 0xF9, 0,
 		6, 0xC, 6,

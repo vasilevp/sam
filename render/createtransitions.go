@@ -108,13 +108,11 @@ func (r *Render) interpolate(width, table, frame, mem53 byte) {
 	sign := int8(mem53) < 0
 	remainder := byte(abs(int8(mem53))) % width
 	div := byte(int(int8(mem53)) / int(width))
+	val := r.Read(table, frame) + div
 
 	var intError byte
-	var pos = width
-	var val = r.Read(table, frame) + div
 
-	pos--
-	for pos > 0 {
+	for pos := width - 1; pos > 0; pos-- {
 		intError += remainder
 		if intError >= width { // accumulated a whole integer error, so adjust output
 			intError -= width
@@ -127,7 +125,6 @@ func (r *Render) interpolate(width, table, frame, mem53 byte) {
 		frame++
 		r.Write(table, frame, val) // Write updated value back to next frame.
 		val += div
-		pos--
 	}
 }
 
