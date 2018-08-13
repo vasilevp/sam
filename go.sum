@@ -1,0 +1,8 @@
+github.com/alexflint/go-arg v0.0.0-20180516182405-f7c0423bd11e/go.mod h1:PHxo6ZWOLVMZZgWSAqBynb/KhIqoGO6WKwOVX7rM9dg=
+github.com/alexflint/go-scalar v0.0.0-20170216020425-e80c3b7ed292 h1:0YTMOir1UPjebSvNmIrEKO9FFd+RZc1wwZHUrxfn4BI=
+github.com/alexflint/go-scalar v0.0.0-20170216020425-e80c3b7ed292/go.mod h1:dgifnFPveotJNpwJdl1hDPu5vSuqVVUPIr3isfcvgBA=
+github.com/faiface/beep v0.0.0-20180613152729-fe13953ab844/go.mod h1:A22Xnws4HqzY9DZEtQCbYRbS1858XfgH6SCFUeRiXDI=
+github.com/hajimehoshi/oto v0.0.0-20180624070912-2aa63a8d0216/go.mod h1:Co7jIdNa4+UYZF0whfBysf8qY6o7oV8dFC1Ld//5HmY=
+github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/youpy/go-riff v0.0.0-20131220112943-557d78c11efb/go.mod h1:83nxdDV4Z9RzrTut9losK7ve4hUnxUR8ASSz4BsKXwQ=
+github.com/youpy/go-wav v0.0.0-20160223082350-b63a9887d320/go.mod h1:Zf+Ju+8Ofy5zx/YWWArfcGnl5FAsWumLq/uHeRGgL60=

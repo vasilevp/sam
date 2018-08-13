@@ -26,7 +26,7 @@ func main() {
 		config.Config
 		Wav          string   `arg:"-w" help:"output to wav instead of sound card"`
 		Input        []string `arg:"positional"`
-		Phonetic     bool     `arg:"-P" help:"enters phonetic mode (use -P to show phonetic guide)"`
+		Phonetic     bool     `arg:"-P" help:"enters phonetic mode (use -g to show phonetic guide)"`
 		PhoneticHelp bool     `arg:"-g" help:"show phonetic guide"`
 	}
 
@@ -40,18 +40,29 @@ func main() {
 
 	if len(args.Input) == 0 {
 		p.WriteHelp(os.Stdout)
+		return
 	}
 
-	r := generateSpeech(strings.Join(args.Input, " "), &args.Config, args.Phonetic)
+	text := strings.Join(args.Input, " ")
+
+	if len(text) > 256 {
+		fmt.Println("Input text should be no more than 256 characters long")
+
+		// TODO: fail properly instead of doing this. everywhere.
+		os.Exit(7)
+	}
+
+	r := generateSpeech(text, &args.Config, args.Phonetic)
 	outputSpeech(r, args.Wav)
 }
 
 func generateSpeech(input string, cfg *config.Config, phonetic bool) *render.Render {
 	var data [256]byte
-	var i int
-	for i = 0; i < len(input); i++ {
-		data[i] = byte(input[i])
-	}
+	input = strings.ToUpper(input)
+
+	copy(data[:], input)
+
+	l := len(input)
 
 	if cfg.Debug {
 		if phonetic {
@@ -62,7 +73,9 @@ func generateSpeech(input string, cfg *config.Config, phonetic bool) *render.Ren
 	}
 
 	if !phonetic {
-		data[i] = '['
+		if l < 256 {
+			data[l] = '['
+		}
 
 		rec := reciter.Reciter{}
 
@@ -72,16 +85,16 @@ func generateSpeech(input string, cfg *config.Config, phonetic bool) *render.Ren
 		if cfg.Debug {
 			fmt.Printf("phonetic input: %s\n", data)
 		}
-	} else {
-		data[i] = '\x9b'
+	} else if l < 256 {
+		data[l] = '\x9b'
 	}
 
 	sam := sammain.Sam{
 		Config: cfg,
 	}
+
 	sam.SetInput(data)
 	if !sam.SAMMain() {
-		// PrintUsage()
 		os.Exit(2)
 	}
 
