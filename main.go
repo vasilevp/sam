@@ -35,6 +35,7 @@ func main() {
 
 	if args.PhoneticHelp {
 		printPhoneticGuide()
+		
 		return
 	}
 
